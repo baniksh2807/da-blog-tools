@@ -118,6 +118,19 @@ async function displayListValue() {
             <div id="authorsList"></div>
           </div>
         `;
+        // Handle dropdown change
+        const dropdown = document.getElementById('siteDropdown');
+        const authorsListDiv = document.getElementById('authorsList');
+
+        dropdown.addEventListener('change', (e) => {
+          const selectedSite = e.target.value;
+          if (selectedSite) {
+            const filteredAuthors = items.filter(item => item.sitegroup === selectedSite);
+            authorsListDiv.innerHTML = renderItems(filteredAuthors, 'authors');
+          } else {
+            authorsListDiv.innerHTML = '<p>Please select a site to view authors.</p>';
+          }
+        });
       } else {
         resultDiv.innerHTML = `
           <div class="result">
