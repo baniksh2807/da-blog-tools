@@ -104,9 +104,18 @@ async function displayListValue() {
         // Only add comma if the format doesn't already end with one
         const finalFormat = hasComma && !effectiveFormat.endsWith(',') ? `${effectiveFormat},` : effectiveFormat;
         const items = finalFormat ? formatData(jsonData, finalFormat) : rawItems;
+
+        // Build unique site list from sitegroup
+        const sites = [...new Set(items.map((item) => item.sitegroup).filter(Boolean))];
+         // Render dropdown for sites
         resultDiv.innerHTML = `
           <div class="result">
-            ${renderItems(items, 'default')}
+            <label for="siteDropdown"><strong>Select Site:</strong></label>
+            <select id="siteDropdown">
+              <option value="">-- Select a Site --</option>
+              ${sites.map(site => `<option value="${site}">${site}</option>`).join('')}
+            </select>
+            <div id="authorsList"></div>
           </div>
         `;
       } else {
