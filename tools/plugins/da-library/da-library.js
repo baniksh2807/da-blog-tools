@@ -153,7 +153,7 @@ async function displayListValue() {
             }
           }
 
-          //dropdown.addEventListener('change', renderAuthorsList);
+          dropdown.addEventListener('change', renderAuthorsList);
           typeDropdown.addEventListener('change', renderAuthorsList);
         } else {
             resultDiv.innerHTML = `
