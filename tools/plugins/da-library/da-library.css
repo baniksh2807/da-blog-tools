@@ -153,3 +153,33 @@ h1 {
     background-size: 18px 18px;
     padding-right: 36px;
 }
+
+/* Style for type dropdown to match the site dropdown */
+#typeDropdown {
+    width: 100%;
+    padding: 10px 12px;
+    border: 1px solid #e1e5e9;
+    border-radius: 6px;
+    background: white;
+    font-size: 15px;
+    color: #333;
+    margin: 8px 0 12px 0;
+    transition: border-color 0.2s;
+    box-sizing: border-box;
+    appearance: none;
+    outline: none;
+}
+
+#typeDropdown:focus {
+    border-color: #007bff;
+    background-color: #f8f9fa;
+}
+
+/* Optional: Add a custom arrow for the dropdown */
+#typeDropdown {
+    background-image: url("data:image/svg+xml,%3Csvg width='16' height='16' fill='gray' xmlns='http://www.w3.org/2000/svg'%3E%3Cpath d='M4 6l4 4 4-4' stroke='%23666' stroke-width='2' fill='none' stroke-linecap='round'/%3E%3C/svg%3E");
+    background-repeat: no-repeat;
+    background-position: right 12px center;
+    background-size: 18px 18px;
+    padding-right: 36px;
+}

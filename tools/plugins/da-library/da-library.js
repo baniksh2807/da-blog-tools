@@ -72,6 +72,7 @@ window.handleItemClick = handleItemClick;
 async function displayListValue() {
   const contentPath = getQueryParam('content');
   const format = getQueryParam('format');
+  const typeJson = getQueryParam('type');
   const resultDiv = document.getElementById('result');
 
   if (contentPath) {
@@ -107,30 +108,65 @@ async function displayListValue() {
 
         // Build unique site list from sitegroup
         const sites = [...new Set(items.map((item) => item.sitegroup).filter(Boolean))];
-         // Render dropdown for sites
-        resultDiv.innerHTML = `
-          <div class="result">
-            <label for="siteDropdown"><strong>Select Site:</strong></label>
-            <select id="siteDropdown">
-              <option value="">-- Select a Site --</option>
-              ${sites.map(site => `<option value="${site}">${site}</option>`).join('')}
-            </select>
-            <div id="authorsList"></div>
-          </div>
-        `;
-        // Handle dropdown change
-        const dropdown = document.getElementById('siteDropdown');
-        const authorsListDiv = document.getElementById('authorsList');
+        if (typeJson === 'authors' && sites.length > 0) {
+          // Render dropdown for sites
+          if (typeJson === 'authors' && sites.length > 0) {
+          // Render dropdown for sites and type
+          resultDiv.innerHTML = `
+            <div class="result">
+              <label for="siteDropdown"><strong>Select Site:</strong></label>
+              <select id="siteDropdown">
+                <option value="">-- Select a Site --</option>
+                ${sites.map(site => `<option value="${site}">${site}</option>`).join('')}
+              </select>
+              <select id="typeDropdown">
+                <option value="">-- Select Type --</option>
+                <option value="label">Author Label</option>
+                <option value="link">Author Link</option>
+              </select>
+              <div id="authorsList"></div>
+            </div>
+          `;
+          const dropdown = document.getElementById('siteDropdown');
+          const typeDropdown = document.getElementById('typeDropdown');
+          const authorsListDiv = document.getElementById('authorsList');
 
-        dropdown.addEventListener('change', (e) => {
-          const selectedSite = e.target.value;
-          if (selectedSite) {
-            const filteredAuthors = items.filter(item => item.sitegroup === selectedSite);
-            authorsListDiv.innerHTML = renderItems(filteredAuthors, 'authors');
-          } else {
-            authorsListDiv.innerHTML = '<p>Please select a site to view authors.</p>';
+          // Helper to render authors based on dropdowns
+          function renderAuthorsList() {
+            const selectedSite = dropdown.value;
+            const selectedType = typeDropdown.value;
+            if (selectedSite) {
+              let filteredAuthors = items.filter(item => item.sitegroup === selectedSite);
+              // Adjust format only for authors.json and when a type is selected
+              let customFormat = format || 'CONTENT';
+              if (selectedType === 'label') {
+                // For label, add a comma at the end if not present
+                if (!customFormat.endsWith(',')) customFormat += ',';
+              } else if (selectedType === 'link') {
+                // For link, remove any trailing comma
+                customFormat = customFormat.replace(/,+$/, '');
+              }
+              // Re-format the filtered authors if type is selected
+              if (selectedType) {
+                filteredAuthors = formatData({ data: filteredAuthors }, customFormat);
+              }
+              authorsListDiv.innerHTML = renderItems(filteredAuthors, 'authors');
+            } else {
+              authorsListDiv.innerHTML = '<p>Please select a site to view authors.</p>';
+            }
           }
-        });
+
+          dropdown.addEventListener('change', renderAuthorsList);
+          typeDropdown.addEventListener('change', renderAuthorsList);
+        
+        } else {
+            resultDiv.innerHTML = `
+            <div class="result">
+              ${renderItems(items, 'default')}
+            </div>
+          `;
+        }
+        
       } else {
         resultDiv.innerHTML = `
           <div class="result">
