@@ -11,13 +11,12 @@ function getQueryParam(param) {
   return value ? decodeURIComponent(value) : value;
 }
 
-function formatData(data, format) {
+function formatData(data, format, type = '') {
   const dataArr = data.data || data;
-  const display = getQueryParam('display');
   const result = dataArr.reduce((acc, item) => {
     if (item.key) {
       let content = item.key;
-      if (display!= null && display !== '' && display === 'metadata' && item.value) {
+      if (type!= null && type !== '' && type === 'label' && item.value) {
         content = item.value;
       }
       const toParse = format ? format.replace(REPLACE_CONTENT, content) : content;
@@ -119,7 +118,7 @@ async function displayListValue() {
               </select>
               <select id="typeDropdown">
                 <option value="">-- Select Type --</option>
-                <option value="label">Author Label</option>
+                <option value="label">Author Title</option>
                 <option value="link">Author Link</option>
               </select>
               <div id="authorsList"></div>
@@ -146,7 +145,7 @@ async function displayListValue() {
               }
               // Re-format the filtered authors if type is selected
               if (selectedType) {
-                filteredAuthors = formatData({ data: filteredAuthors }, customFormat);
+                filteredAuthors = formatData({ data: filteredAuthors }, customFormat, selectedType);
               }
               authorsListDiv.innerHTML = renderItems(filteredAuthors, 'authors');
             } else {
@@ -154,7 +153,7 @@ async function displayListValue() {
             }
           }
 
-          dropdown.addEventListener('change', renderAuthorsList);
+          //dropdown.addEventListener('change', renderAuthorsList);
           typeDropdown.addEventListener('change', renderAuthorsList);
         } else {
             resultDiv.innerHTML = `
