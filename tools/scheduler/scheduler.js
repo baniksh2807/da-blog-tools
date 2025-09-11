@@ -166,26 +166,28 @@ async function getSchedules(url, opts) {
 }
 
 // Update the createCronExpression function
-// Update the createCronExpression function to use local time (not UTC)
 function createCronExpression(localDate) {
-  const day = localDate.getDate();
+  const utcDate = new Date(localDate.toUTCString());
+  const day = utcDate.getUTCDate();
   const suffix = ['th', 'st', 'nd', 'rd'][(day % 10 > 3 || day < 21) ? 0 : day % 10];
 
-  // Format time separately in local time
+  // Format time separately
   const timeFormatter = new Intl.DateTimeFormat('en-US', {
     hour: 'numeric',
     minute: '2-digit',
     hour12: true,
+    timeZone: 'UTC',
   });
 
-  // Format month separately in local time
+  // Format month separately
   const monthFormatter = new Intl.DateTimeFormat('en-US', {
     month: 'long',
+    timeZone: 'UTC',
   });
 
-  return `at ${timeFormatter.format(localDate)} on the ${day}${suffix} day of ${
-    monthFormatter.format(localDate)
-  } in ${localDate.getFullYear()}`;
+  return `at ${timeFormatter.format(utcDate)} on the ${day}${suffix} day of ${
+    monthFormatter.format(utcDate)
+  } in ${utcDate.getUTCFullYear()}`;
 }
 
 /**
