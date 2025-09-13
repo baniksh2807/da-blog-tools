@@ -28,16 +28,20 @@ function formatData(data, format, type = '') {
   return result;
 }
 
-function renderItems(items, listName, iconType = '') {
+function renderItems(items, listName, iconType = '', customClickHandler = null) {
   return `
     <ul class="da-library-type-list da-library-type-list-${listName}">
       ${items.map((item) => {
-    const name = item.value || item.name || item.key; // Display name
-    if (!name) return '';
-    return `
+        const name = item.value || item.name || item.key;
+        if (!name) return '';
+        // Use custom click handler if provided, else default to handleItemClick
+        const clickHandler = customClickHandler
+          ? `${customClickHandler}(${JSON.stringify(item).replace(/"/g, '&quot;')})`
+          : `handleItemClick(${JSON.stringify(item).replace(/"/g, '&quot;')})`;
+        return `
           <li class="da-library-type-item">
             <button class="da-library-type-item-btn ${iconType}"
-              onclick="handleItemClick(${JSON.stringify(item).replace(/"/g, '&quot;')})">
+              onclick="${clickHandler}">
               <div class="da-library-type-item-detail">
                 ${item.icon && !item.url ? `<span class="icon-placeholder">${item.icon}</span>` : ''}
                 <span>${name}</span>
@@ -47,7 +51,7 @@ function renderItems(items, listName, iconType = '') {
               </div>
             </button>
           </li>`;
-  }).join('')}
+      }).join('')}
     </ul>`;
 }
 
@@ -67,6 +71,108 @@ async function handleItemClick(item) {
 }
 
 window.handleItemClick = handleItemClick;
+window.insertAuthorToPage = insertAuthorToPage;
+
+/**
+ * Utility to insert author info into the article header, article summary, and metadata.
+ * @param {Object} item - The author item (expects { key, value })
+ */
+async function insertAuthorToPage(item) {
+  try {
+    const { context, token, actions } = await DA_SDK;
+
+    // 1. Download the page source
+    const sourceUrl = `${DA_ORIGIN}/source/${context.org}/${context.repo}${context.path}.html`;
+    const response = await actions.daFetch(sourceUrl);
+    if (!response.ok) throw new Error(`Failed to fetch page source: ${response.statusText}`);
+    const sourceContent = await response.text();
+
+    // 2. Parse HTML
+    const parser = new DOMParser();
+    const doc = parser.parseFromString(sourceContent, 'text/html');
+
+    // --- ARTICLE HEADER ---
+    let headerBlock = doc.querySelector('.article-header');
+    /* if (headerBlock) {
+      // Target the second <div> in .article-header, then the first <div> inside it, then the second <p>
+      const outerDivs = headerBlock.querySelectorAll(':scope > div');
+      if (outerDivs.length >= 2) {
+        const secondOuterDiv = outerDivs[1];
+        const innerDivs = secondOuterDiv.querySelectorAll(':scope > div');
+        if (innerDivs.length >= 1) {
+          const authorDiv = innerDivs[0];
+          const ps = authorDiv.querySelectorAll('p');
+          if (ps.length >= 2) {
+            ps[0].textContent = 'WRITTEN BY';
+            ps[1].textContent = `/en-us/microsoft-fabric/blog/author/${item.key}`;
+          }
+        }
+      }
+    } */
+
+    // --- ARTICLE SUMMARY WITH AUTHOR ---
+    /* let summaryBlock = doc.querySelector('.article-summary.with-author');
+    if (summaryBlock) {
+      // Find the first <div> inside .article-summary.with-author and set its first child to the author link
+      const summaryInnerDiv = summaryBlock.querySelector('div');
+      if (summaryInnerDiv && summaryInnerDiv.children.length > 0) {
+        summaryInnerDiv.children[0].textContent = `/en-us/microsoft-fabric/blog/author/${item.key}`;
+      }
+    } */
+
+    // --- METADATA BLOCK ---
+    let metadata = doc.querySelector('.metadata');
+    if (!metadata) {
+      // Create metadata block if not present
+      metadata = doc.createElement('div');
+      metadata.className = 'metadata';
+      const main = doc.querySelector('main') || doc.body;
+      main.insertBefore(metadata, main.firstChild);
+    }
+    // Look for existing author row
+    let authorRow = Array.from(metadata.children).find(row => {
+      const keyDiv = row.children[0];
+      const keyElement = keyDiv.querySelector('p');
+      const keyText = keyElement
+        ? keyElement.textContent.trim().toLowerCase()
+        : keyDiv.textContent.trim().toLowerCase();
+      return keyText === 'author';
+    });
+    if (!authorRow) {
+      // Create new row
+      authorRow = doc.createElement('div');
+      authorRow.innerHTML = `<div><p>author</p></div><div><p>${item.key}</p></div>`;
+      metadata.appendChild(authorRow);
+    } else {
+      // Update value in the second column (second div)
+      const valueDiv = authorRow.children[1];
+      const valueP = valueDiv.querySelector('p');
+      if (valueP) valueP.textContent = item.key;
+      else valueDiv.textContent = item.key;
+    }
+
+    // 4. Serialize and save
+    let updatedHtml = doc.documentElement.outerHTML;
+    updatedHtml = updatedHtml.replace(/<!--[\s\S]*?-->/g, ''); // Remove comments
+
+    const body = new FormData();
+    body.append('data', new Blob([updatedHtml], { type: 'text/html' }));
+
+    const updateResponse = await actions.daFetch(sourceUrl, {
+      method: 'POST',
+      body,
+    });
+    if (!updateResponse.ok) throw new Error(`Failed to update page: ${updateResponse.statusText}`);
+
+    // Optionally, show a success message
+    // alert('Author info added to page!');
+  } catch (error) {
+    // eslint-disable-next-line no-console
+    console.error('Error inserting author info:', error);
+    // Optionally, show an error message
+    // alert('Failed to add author info: ' + error.message);
+  }
+}
 
 /*async function displayListValue() {
   const contentPath = getQueryParam('content');
@@ -307,7 +413,7 @@ async function displayListValue() {
                 if (selectedType) {
                   filteredAuthors = formatData({ data: filteredAuthors }, customFormat, selectedType);
                 }
-                authorsListDiv.innerHTML = renderItems(filteredAuthors, 'authors');
+                authorsListDiv.innerHTML = renderItems(filteredAuthors, 'authors', '', 'insertAuthorToPage');
               } else {
                 authorsListDiv.innerHTML = '<p>Please select a site to view authors.</p>';
               }
