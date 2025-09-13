@@ -104,7 +104,7 @@ async function insertAuthorToPage(item) {
           const ps = authorDiv.querySelectorAll('p');
           if (ps.length >= 2) {
             ps[0].textContent = 'WRITTEN BY';
-            ps[1].textContent = `/en-us/microsoft-fabric/blog/author/${item.key}`;
+            ps[1].textContent = `${item.key}`;
           }
         }
       }
@@ -116,7 +116,7 @@ async function insertAuthorToPage(item) {
       // Find the first <div> inside .article-summary.with-author and set its first child to the author link
       const summaryInnerDiv = summaryBlock.querySelector('div');
       if (summaryInnerDiv && summaryInnerDiv.children.length > 0) {
-        summaryInnerDiv.children[0].textContent = `/en-us/microsoft-fabric/blog/author/${item.key}`;
+        summaryInnerDiv.children[0].textContent = `${item.key}`;
       }
     }
 
@@ -147,8 +147,8 @@ async function insertAuthorToPage(item) {
       // Update value in the second column (second div)
       const valueDiv = authorRow.children[1];
       const valueP = valueDiv.querySelector('p');
-      if (valueP) valueP.textContent = item.key;
-      else valueDiv.textContent = item.key;
+      if (valueP) valueP.textContent = item.value;
+      else valueDiv.textContent = item.value;
     }
 
     // 4. Serialize and save
