@@ -222,6 +222,7 @@ async function displayListValue() {
       // Detect multi-sheet format
       const isMultiSheet = jsonData[':type'] === 'multi-sheet' && Array.isArray(jsonData[':names']);
       if (isMultiSheet) {
+        
         // Render dropdown for sheets (sites)
         const sheetNames = jsonData[':names'];
         resultDiv.innerHTML = `
@@ -237,33 +238,17 @@ async function displayListValue() {
         const dropdown = document.getElementById('siteDropdown');
         const sheetDataListDiv = document.getElementById('sheetDataList');
 
-        dropdown.addEventListener('change', async () => {
+        dropdown.addEventListener('change', () => {
           const selectedSheet = dropdown.value;
           if (!selectedSheet) {
             sheetDataListDiv.innerHTML = '';
             return;
           }
-          // Fetch the selected sheet using ?sheet=
-          let sheetUrl = adminApiUrl;
-          // Add or replace ?sheet= param
-          if (sheetUrl.includes('?')) {
-            sheetUrl = sheetUrl.replace(/([?&])sheet=[^&]*/, `$1sheet=${encodeURIComponent(selectedSheet)}`);
-            if (!sheetUrl.includes('sheet=')) {
-              sheetUrl += `&sheet=${encodeURIComponent(selectedSheet)}`;
-            }
-          } else {
-            sheetUrl += `?sheet=${encodeURIComponent(selectedSheet)}`;
-          }
-          const sheetResp = isFullUrl ? await fetch(sheetUrl) : await actions.daFetch(sheetUrl);
-          if (!sheetResp.ok) {
-            sheetDataListDiv.innerHTML = `<div class="no-value"><p>Error loading sheet: ${selectedSheet}</p></div>`;
-            return;
-          }
-          const sheetJson = await sheetResp.json();
-          const rawItems = Array.isArray(sheetJson) ? sheetJson : (sheetJson.items || sheetJson.data || []);
+          // Instead of fetching, use the data from the loaded JSON
+          const sheetObj = jsonData[selectedSheet];
+          const rawItems = Array.isArray(sheetObj) ? sheetObj : (sheetObj.items || sheetObj.data || []);
           if (rawItems && rawItems.length > 0) {
-            // Use formatData and renderItems as usual
-            const items = format ? formatData(sheetJson, format) : rawItems;
+            const items = format ? formatData(sheetObj, format) : rawItems;
             sheetDataListDiv.innerHTML = renderItems(items, 'sheet');
           } else {
             sheetDataListDiv.innerHTML = `<div class="no-value"><p>No data found for "${selectedSheet}"</p></div>`;
