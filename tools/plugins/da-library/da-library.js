@@ -16,7 +16,7 @@ function formatData(data, format, type = '') {
   const result = dataArr.reduce((acc, item) => {
     if (item.key) {
       let content = item.key;
-      if (type!= null && type !== '' && type === 'label' && item.value) {
+      if (type != null && type !== '' && type === 'label' && item.value) {
         content = item.value;
       }
       const toParse = format ? format.replace(REPLACE_CONTENT, content) : content;
@@ -165,8 +165,6 @@ async function insertAuthorToPage(item) {
     if (!updateResponse.ok) throw new Error(`Failed to update page: ${updateResponse.statusText}`);
     alert('Author info added to page!');
     await actions.closeLibrary();
-    // Optionally, show a success message
-    // 
   } catch (error) {
     // eslint-disable-next-line no-console
     console.error('Error inserting author info:', error);
@@ -174,128 +172,6 @@ async function insertAuthorToPage(item) {
     // alert('Failed to add author info: ' + error.message);
   }
 }
-
-/*async function displayListValue() {
-  const contentPath = getQueryParam('content');
-  const format = getQueryParam('format');
-  const typeJson = getQueryParam('type');
-  const resultDiv = document.getElementById('result');
-
-  if (contentPath) {
-    try {
-      resultDiv.innerHTML = `
-        <div class="result">
-          <div class="loading-spinner">
-            <div class="spinner"></div>
-            <p>Loading...</p>
-          </div>
-        </div>
-      `;
-      const { context, actions } = await DA_SDK;
-
-      // Check if contentPath is a full URL or relative path
-      const isFullUrl = contentPath.startsWith('http://') || contentPath.startsWith('https://');
-      const adminApiUrl = isFullUrl ? contentPath : `${DA_ORIGIN}/source/${context.org}/${context.repo}${contentPath}`;
-
-      // Use regular fetch for full URLs, daFetch for relative paths
-      const response = isFullUrl ? await fetch(adminApiUrl) : await actions.daFetch(adminApiUrl);
-      if (!response.ok) {
-        throw new Error(`HTTP error! status: ${response.status}`);
-      }
-      const jsonData = await response.json();
-      const rawItems = Array.isArray(jsonData) ? jsonData : (jsonData.items || jsonData.data || []);
-      if (rawItems && rawItems.length > 0) {
-        const rawUrl = window.location.href;
-        const hasComma = rawUrl.includes('CONTENT%2C') || rawUrl.includes('CONTENT,');
-        const effectiveFormat = format || 'CONTENT';
-        // Only add comma if the format doesn't already end with one
-        const finalFormat = hasComma && !effectiveFormat.endsWith(',') ? `${effectiveFormat},` : effectiveFormat;
-        const items = finalFormat ? formatData(jsonData, finalFormat) : rawItems;
-
-        // Build unique site list from sitegroup
-        const sites = [...new Set(items.map((item) => item.sitegroup).filter(Boolean))];
-        if (typeJson === 'authors' && sites.length > 0) {
-          // Render dropdown for sites and type
-          resultDiv.innerHTML = `
-            <div class="result">
-              <label for="siteDropdown"><strong>Select Site:</strong></label>
-              <select id="siteDropdown">
-                <option value="">-- Select a Site --</option>
-                ${sites.map(site => `<option value="${site}">${site}</option>`).join('')}
-              </select>
-              <select id="typeDropdown">
-                <option value="">-- Select Type --</option>
-                <option value="label">Author Title</option>
-                <option value="link">Author Link</option>
-              </select>
-              <div id="authorsList"></div>
-            </div>
-          `;
-          const dropdown = document.getElementById('siteDropdown');
-          const typeDropdown = document.getElementById('typeDropdown');
-          const authorsListDiv = document.getElementById('authorsList');
-
-          // Helper to render authors based on dropdowns
-          function renderAuthorsList() {
-            const selectedSite = dropdown.value;
-            const selectedType = typeDropdown.value;
-            if (selectedSite) {
-              let filteredAuthors = items.filter(item => item.sitegroup === selectedSite);
-              // Adjust format only for authors.json and when a type is selected
-              let customFormat = format || 'CONTENT';
-              if (selectedType === 'label') {
-                // For label, add a comma at the end if not present
-                if (!customFormat.endsWith(',')) customFormat += ',';
-              } else if (selectedType === 'link') {
-                // For link, remove any trailing comma
-                customFormat = customFormat.replace(/,+$/, '');
-              }
-              // Re-format the filtered authors if type is selected
-              if (selectedType) {
-                filteredAuthors = formatData({ data: filteredAuthors }, customFormat, selectedType);
-              }
-              authorsListDiv.innerHTML = renderItems(filteredAuthors, 'authors');
-            } else {
-              authorsListDiv.innerHTML = '<p>Please select a site to view authors.</p>';
-            }
-          }
-
-          dropdown.addEventListener('change', renderAuthorsList);
-          typeDropdown.addEventListener('change', renderAuthorsList);
-        } else {
-            resultDiv.innerHTML = `
-            <div class="result">
-              ${renderItems(items, 'default')}
-            </div>
-          `;
-        }
-        
-      } else {
-        resultDiv.innerHTML = `
-          <div class="result">
-            <pre>${JSON.stringify(jsonData, null, 2)}</pre>
-          </div>
-        `;
-      }
-    } catch (error) {
-      resultDiv.innerHTML = `
-        <div class="no-value">
-          <h3>Error Fetching JSON:</h3>
-          <p><strong>Path: "${contentPath}"</strong></p>
-          <p>Error: ${error.message}</p>
-        </div>
-      `;
-    }
-  } else {
-    resultDiv.innerHTML = `
-      <div class="no-value">
-        <h3>No Content Path Found</h3>
-        <p>No "content" parameter found in the URL query string.</p>
-        <p>Try adding <code>?content=/docs/library/authors.json</code> to the URL.</p>
-      </div>
-    `;
-  }
-}*/
 
 async function displayListValue() {
   const contentPath = getQueryParam('content');
@@ -329,7 +205,6 @@ async function displayListValue() {
       // Detect multi-sheet format
       const isMultiSheet = jsonData[':type'] === 'multi-sheet' && Array.isArray(jsonData[':names']);
       if (isMultiSheet) {
-        
         // Render dropdown for sheets (sites)
         const sheetNames = jsonData[':names'];
         resultDiv.innerHTML = `
@@ -354,11 +229,18 @@ async function displayListValue() {
           // Instead of fetching, use the data from the loaded JSON
           const sheetObj = jsonData[selectedSheet];
           const rawItems = Array.isArray(sheetObj) ? sheetObj : (sheetObj.items || sheetObj.data || []);
-          if (rawItems && rawItems.length > 0) {
-            const items = format ? formatData(sheetObj, format) : rawItems;
-            sheetDataListDiv.innerHTML = renderItems(items, 'sheet');
+          if (typeJson === 'authors') {
+            if (rawItems && rawItems.length > 0) {
+              sheetDataListDiv.innerHTML = renderItems(rawItems, 'authors', '', 'insertAuthorToPage');
+            } else {
+              sheetDataListDiv.innerHTML = `<div class="no-value"><p>No data found for "${selectedSheet}"</p></div>`;
+            }
           } else {
-            sheetDataListDiv.innerHTML = `<div class="no-value"><p>No data found for "${selectedSheet}"</p></div>`;
+            if (rawItems && rawItems.length > 0) {
+              sheetDataListDiv.innerHTML = renderItems(rawItems, 'sheet');
+            } else {
+              sheetDataListDiv.innerHTML = `<div class="no-value"><p>No data found for "${selectedSheet}"</p></div>`;
+            }
           }
         });
       } else {
@@ -375,7 +257,7 @@ async function displayListValue() {
           // Build unique site list from sitegroup
           const sites = [...new Set(items.map((item) => item.sitegroup).filter(Boolean))];
           if (typeJson === 'authors' && sites.length > 0) {
-            // Render dropdown for sites and type
+            // Render dropdown for sites only (no type dropdown)
             resultDiv.innerHTML = `
               <div class="result">
                 <label for="siteDropdown"><strong>Select Site:</strong></label>
@@ -383,37 +265,17 @@ async function displayListValue() {
                   <option value="">-- Select a Site --</option>
                   ${sites.map(site => `<option value="${site}">${site}</option>`).join('')}
                 </select>
-                <select id="typeDropdown">
-                  <option value="">-- Select Type --</option>
-                  <option value="label">Author Title</option>
-                  <option value="link">Author Link</option>
-                </select>
                 <div id="authorsList"></div>
               </div>
             `;
             const dropdown = document.getElementById('siteDropdown');
-            const typeDropdown = document.getElementById('typeDropdown');
             const authorsListDiv = document.getElementById('authorsList');
 
-            // Helper to render authors based on dropdowns
+            // Helper to render authors based on dropdown
             function renderAuthorsList() {
               const selectedSite = dropdown.value;
-              const selectedType = typeDropdown.value;
               if (selectedSite) {
                 let filteredAuthors = items.filter(item => item.sitegroup === selectedSite);
-                // Adjust format only for authors.json and when a type is selected
-                let customFormat = format || 'CONTENT';
-                if (selectedType === 'label') {
-                  // For label, add a comma at the end if not present
-                  if (!customFormat.endsWith(',')) customFormat += ',';
-                } else if (selectedType === 'link') {
-                  // For link, remove any trailing comma
-                  customFormat = customFormat.replace(/,+$/, '');
-                }
-                // Re-format the filtered authors if type is selected
-                if (selectedType) {
-                  filteredAuthors = formatData({ data: filteredAuthors }, customFormat, selectedType);
-                }
                 authorsListDiv.innerHTML = renderItems(filteredAuthors, 'authors', '', 'insertAuthorToPage');
               } else {
                 authorsListDiv.innerHTML = '<p>Please select a site to view authors.</p>';
@@ -421,7 +283,6 @@ async function displayListValue() {
             }
 
             dropdown.addEventListener('change', renderAuthorsList);
-            typeDropdown.addEventListener('change', renderAuthorsList);
           } else {
             resultDiv.innerHTML = `
               <div class="result">
