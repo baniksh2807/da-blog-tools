@@ -93,7 +93,7 @@ async function insertAuthorToPage(item) {
 
     // --- ARTICLE HEADER ---
     let headerBlock = doc.querySelector('.article-header');
-    /* if (headerBlock) {
+    if (headerBlock) {
       // Target the second <div> in .article-header, then the first <div> inside it, then the second <p>
       const outerDivs = headerBlock.querySelectorAll(':scope > div');
       if (outerDivs.length >= 2) {
@@ -108,17 +108,17 @@ async function insertAuthorToPage(item) {
           }
         }
       }
-    } */
+    }
 
     // --- ARTICLE SUMMARY WITH AUTHOR ---
-    /* let summaryBlock = doc.querySelector('.article-summary.with-author');
+    let summaryBlock = doc.querySelector('.article-summary.with-author');
     if (summaryBlock) {
       // Find the first <div> inside .article-summary.with-author and set its first child to the author link
       const summaryInnerDiv = summaryBlock.querySelector('div');
       if (summaryInnerDiv && summaryInnerDiv.children.length > 0) {
         summaryInnerDiv.children[0].textContent = `/en-us/microsoft-fabric/blog/author/${item.key}`;
       }
-    } */
+    }
 
     // --- METADATA BLOCK ---
     let metadata = doc.querySelector('.metadata');
@@ -163,9 +163,10 @@ async function insertAuthorToPage(item) {
       body,
     });
     if (!updateResponse.ok) throw new Error(`Failed to update page: ${updateResponse.statusText}`);
-
+    alert('Author info added to page!');
+    await actions.closeLibrary();
     // Optionally, show a success message
-    // alert('Author info added to page!');
+    // 
   } catch (error) {
     // eslint-disable-next-line no-console
     console.error('Error inserting author info:', error);
