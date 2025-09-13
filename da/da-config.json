@@ -1,0 +1,13 @@
+{
+  "actions": {
+    "publish": {
+      "label": "Publish",
+      "script": "/tools/custom-publish.js"
+    },
+    "publish-safe": {
+      "label": "Safe Publish",
+      "script": "/tools/safe-publish.js",
+      "icon": "shield"
+    }
+  }
+}
