@@ -80,7 +80,11 @@ window.insertAuthorToPage = insertAuthorToPage;
 async function insertAuthorToPage(item) {
   try {
     const { context, token, actions } = await DA_SDK;
-
+    if (item.parsed && item.parsed.text) {
+      await actions.sendText(item.parsed.text);
+    } else if (item.key) {
+      await actions.sendText(item.key);
+    }
     // 1. Download the page source
     const sourceUrl = `${DA_ORIGIN}/source/${context.org}/${context.repo}${context.path}.html`;
     const response = await actions.daFetch(sourceUrl);
@@ -92,7 +96,7 @@ async function insertAuthorToPage(item) {
     const doc = parser.parseFromString(sourceContent, 'text/html');
 
     // --- ARTICLE HEADER ---
-    let headerBlock = doc.querySelector('.article-header');
+    /* let headerBlock = doc.querySelector('.article-header');
     if (headerBlock) {
       // Target the second <div> in .article-header, then the first <div> inside it, then the second <p>
       const outerDivs = headerBlock.querySelectorAll(':scope > div');
@@ -108,17 +112,17 @@ async function insertAuthorToPage(item) {
           }
         }
       }
-    }
+    } */
 
     // --- ARTICLE SUMMARY WITH AUTHOR ---
-    let summaryBlock = doc.querySelector('.article-summary.with-author');
+    /* let summaryBlock = doc.querySelector('.article-summary.with-author');
     if (summaryBlock) {
       // Find the first <div> inside .article-summary.with-author and set its first child to the author link
       const summaryInnerDiv = summaryBlock.querySelector('div');
       if (summaryInnerDiv && summaryInnerDiv.children.length > 0) {
         summaryInnerDiv.children[0].textContent = `${item.key}`;
       }
-    }
+    } */
 
     // --- METADATA BLOCK ---
     let metadata = doc.querySelector('.metadata');
@@ -144,11 +148,18 @@ async function insertAuthorToPage(item) {
       authorRow.innerHTML = `<div><p>author</p></div><div><p>${item.key}</p></div>`;
       metadata.appendChild(authorRow);
     } else {
-      // Update value in the second column (second div)
+      // Update value in the second column (second div) with comma separated values
       const valueDiv = authorRow.children[1];
       const valueP = valueDiv.querySelector('p');
-      if (valueP) valueP.textContent = item.value;
-      else valueDiv.textContent = item.value;
+      let currentValue = valueP ? valueP.textContent.trim() : valueDiv.textContent.trim();
+      // Add new value only if not already present
+      const values = currentValue ? currentValue.split(',').map(v => v.trim()) : [];
+      if (!values.includes(item.value)) {
+        values.push(item.value);
+      }
+      const newValue = values.filter(Boolean).join(', ');
+      if (valueP) valueP.textContent = newValue;
+      else valueDiv.textContent = newValue;
     }
 
     // 4. Serialize and save
@@ -163,7 +174,7 @@ async function insertAuthorToPage(item) {
       body,
     });
     if (!updateResponse.ok) throw new Error(`Failed to update page: ${updateResponse.statusText}`);
-    alert('Author info added to page!');
+    //alert('Author info added to page!');
     await actions.closeLibrary();
   } catch (error) {
     // eslint-disable-next-line no-console
