@@ -206,7 +206,7 @@ async function displayListValue() {
       const sourceUrl = `${DA_ORIGIN}/source/${context.org}/${context.repo}${context.path}.html`;
       const domResponse = await actions.daFetch(sourceUrl);
       if (!response.ok) throw new Error(`Failed to fetch page source: ${response.statusText}`);
-      sourceContent = await response.text();
+      sourceContent = await domResponse.text();
 
       // Fetch the main JSON (multi-sheet or regular)
       const response = isFullUrl ? await fetch(adminApiUrl) : await actions.daFetch(adminApiUrl);
