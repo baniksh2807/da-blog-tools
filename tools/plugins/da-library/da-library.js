@@ -82,7 +82,7 @@ async function insertAuthorToPage(item) {
   try {
     const { context, token, actions } = await DA_SDK;
     const sourceUrl = `${DA_ORIGIN}/source/${context.org}/${context.repo}${context.path}.html`;
-    
+
     // 2. Parse HTML
     const parser = new DOMParser();
     const doc = parser.parseFromString(sourceContent, 'text/html');
@@ -160,12 +160,12 @@ async function insertAuthorToPage(item) {
 
     const body = new FormData();
     body.append('data', new Blob([updatedHtml], { type: 'text/html' }));
-
-    const updateResponse = await actions.daFetch(sourceUrl, {
+    //commented the code to send the response.
+    /* const updateResponse = await actions.daFetch(sourceUrl, {
       method: 'POST',
       body,
     });
-    if (!updateResponse.ok) throw new Error(`Failed to update page: ${updateResponse.statusText}`);
+    if (!updateResponse.ok) throw new Error(`Failed to update page: ${updateResponse.statusText}`); */
     //alert('Author info added to page!');
     if (item.parsed && item.parsed.text) {
       await actions.sendText(item.parsed.text);
