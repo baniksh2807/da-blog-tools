@@ -205,7 +205,7 @@ async function displayListValue() {
       // 1. Download the page source
       const sourceUrl = `${DA_ORIGIN}/source/${context.org}/${context.repo}${context.path}.html`;
       const domResponse = await actions.daFetch(sourceUrl);
-      if (!response.ok) throw new Error(`Failed to fetch page source: ${response.statusText}`);
+      if (!domResponse.ok) throw new Error(`Failed to fetch page source: ${domResponse.statusText}`);
       sourceContent = await domResponse.text();
 
       // Fetch the main JSON (multi-sheet or regular)
