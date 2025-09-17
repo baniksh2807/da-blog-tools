@@ -165,19 +165,21 @@ async function insertAuthorToPage(item) {
     const body = new FormData();
     body.append('data', new Blob([updatedHtml], { type: 'text/html' }));
 
-    const updateResponse = actions.daFetch(sourceUrl, {
+    const updateResponse = await actions.daFetch(sourceUrl, {
       method: 'POST',
       body,
     });
     if (!updateResponse.ok) throw new Error(`Failed to update page: ${updateResponse.statusText}`);
     //alert('Author info added to page!');
-    if(updateResponse.ok){
-      if (item.parsed && item.parsed.text) {
-        await actions.sendText(item.parsed.text);
-      } else if (item.key) {
-        await actions.sendText(item.key);
-      }
-      await actions.closeLibrary();
+    if (updateResponse.ok) {
+      setTimeout(async () => {
+        if (item.parsed && item.parsed.text) {
+          await actions.sendText(item.parsed.text);
+        } else if (item.key) {
+          await actions.sendText(item.key);
+        }
+        await actions.closeLibrary();
+      }, 1000); // Delay by 500ms (adjust as needed)
     }
     
     
