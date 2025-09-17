@@ -81,23 +81,25 @@ async function insertAuthorToPage(item) {
   try {
     const { context, token, actions } = await DA_SDK;
 
+    // 1. Send value to editor
     if (item.parsed && item.parsed.text) {
-        await actions.sendText(item.parsed.text);
-      } else if (item.key) {
-        await actions.sendText(item.key);
+      await actions.sendText(item.parsed.text);
+    } else if (item.key) {
+      await actions.sendText(item.key);
     }
-    setTimeout(async () => {
-      // 1. Download the page source
+
+    // 2. Delay before updating document
+    await new Promise(resolve => setTimeout(resolve, 500)); // 500ms delay
+
+    // 3. Download the page source
     const sourceUrl = `${DA_ORIGIN}/source/${context.org}/${context.repo}${context.path}.html`;
     const response = await actions.daFetch(sourceUrl);
     if (!response.ok) throw new Error(`Failed to fetch page source: ${response.statusText}`);
     const sourceContent = await response.text();
 
-    // 2. Parse HTML
+    // 4. Parse HTML and update metadata (your existing logic)
     const parser = new DOMParser();
     const doc = parser.parseFromString(sourceContent, 'text/html');
-
-    // --- METADATA BLOCK ---
     let metadata = doc.querySelector('.metadata');
     if (!metadata) {
       metadata = doc.createElement('div');
@@ -105,7 +107,6 @@ async function insertAuthorToPage(item) {
       const main = doc.querySelector('main') || doc.body;
       main.insertBefore(metadata, main.firstChild);
     }
-    // Look for existing author row
     let authorRow = Array.from(metadata.children).find(row => {
       const keyDiv = row.children[0];
       const keyElement = keyDiv.querySelector('p');
@@ -116,13 +117,11 @@ async function insertAuthorToPage(item) {
     });
     let newValue;
     if (!authorRow) {
-      // Create new row
       authorRow = doc.createElement('div');
       authorRow.innerHTML = `<div><p>author</p></div><div><p>${item.value}</p></div>`;
       metadata.appendChild(authorRow);
       newValue = item.value;
     } else {
-      // Update value in the second column (second div) with comma separated values
       const valueDiv = authorRow.children[1];
       const valueP = valueDiv.querySelector('p');
       let currentValue = valueP ? valueP.textContent.trim() : valueDiv.textContent.trim();
@@ -135,31 +134,24 @@ async function insertAuthorToPage(item) {
       else valueDiv.textContent = newValue;
     }
 
-    // 3. Serialize and save
+    // 5. Serialize and save
     let updatedHtml = doc.documentElement.outerHTML;
-    updatedHtml = updatedHtml.replace(/<!--[\s\S]*?-->/g, ''); // Remove comments
-
+    updatedHtml = updatedHtml.replace(/<!--[\s\S]*?-->/g, '');
     const body = new FormData();
     body.append('data', new Blob([updatedHtml], { type: 'text/html' }));
 
-    // 4. Update document and then send text
+    // 6. Update document
     const updateResponse = await actions.daFetch(sourceUrl, {
       method: 'POST',
       body,
     });
     if (!updateResponse.ok) throw new Error(`Failed to update page: ${updateResponse.statusText}`);
 
-    // Only after update, send text to editor and close library
-
-    }, 500); // Wait for text to be sent
-    
-      await actions.closeLibrary();
+    await actions.closeLibrary();
 
   } catch (error) {
     // eslint-disable-next-line no-console
     console.error('Error inserting author info:', error);
-    // Optionally, show an error message
-    // alert('Failed to add author info: ' + error.message);
   }
 }
 
