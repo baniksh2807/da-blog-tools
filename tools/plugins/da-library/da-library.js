@@ -80,7 +80,7 @@ window.insertAuthorToPage = insertAuthorToPage;
 async function insertAuthorToPage(item) {
   try {
     const { context, token, actions } = await DA_SDK;
-    
+
     // 1. Download the page source
     const sourceUrl = `${DA_ORIGIN}/source/${context.org}/${context.repo}${context.path}.html`;
     const response = await actions.daFetch(sourceUrl);
@@ -91,39 +91,9 @@ async function insertAuthorToPage(item) {
     const parser = new DOMParser();
     const doc = parser.parseFromString(sourceContent, 'text/html');
 
-    // --- ARTICLE HEADER ---
-    /* let headerBlock = doc.querySelector('.article-header');
-    if (headerBlock) {
-      // Target the second <div> in .article-header, then the first <div> inside it, then the second <p>
-      const outerDivs = headerBlock.querySelectorAll(':scope > div');
-      if (outerDivs.length >= 2) {
-        const secondOuterDiv = outerDivs[1];
-        const innerDivs = secondOuterDiv.querySelectorAll(':scope > div');
-        if (innerDivs.length >= 1) {
-          const authorDiv = innerDivs[0];
-          const ps = authorDiv.querySelectorAll('p');
-          if (ps.length >= 2) {
-            ps[0].textContent = 'WRITTEN BY';
-            ps[1].textContent = `${item.key}`;
-          }
-        }
-      }
-    } */
-
-    // --- ARTICLE SUMMARY WITH AUTHOR ---
-    /* let summaryBlock = doc.querySelector('.article-summary.with-author');
-    if (summaryBlock) {
-      // Find the first <div> inside .article-summary.with-author and set its first child to the author link
-      const summaryInnerDiv = summaryBlock.querySelector('div');
-      if (summaryInnerDiv && summaryInnerDiv.children.length > 0) {
-        summaryInnerDiv.children[0].textContent = `${item.key}`;
-      }
-    } */
-
     // --- METADATA BLOCK ---
     let metadata = doc.querySelector('.metadata');
     if (!metadata) {
-      // Create metadata block if not present
       metadata = doc.createElement('div');
       metadata.className = 'metadata';
       const main = doc.querySelector('main') || doc.body;
@@ -138,52 +108,49 @@ async function insertAuthorToPage(item) {
         : keyDiv.textContent.trim().toLowerCase();
       return keyText === 'author';
     });
+    let newValue;
     if (!authorRow) {
       // Create new row
       authorRow = doc.createElement('div');
-      authorRow.innerHTML = `<div><p>author</p></div><div><p>${item.key}</p></div>`;
+      authorRow.innerHTML = `<div><p>author</p></div><div><p>${item.value}</p></div>`;
       metadata.appendChild(authorRow);
+      newValue = item.value;
     } else {
       // Update value in the second column (second div) with comma separated values
       const valueDiv = authorRow.children[1];
       const valueP = valueDiv.querySelector('p');
       let currentValue = valueP ? valueP.textContent.trim() : valueDiv.textContent.trim();
-      // Add new value only if not already present
       const values = currentValue ? currentValue.split(',').map(v => v.trim()) : [];
       if (!values.includes(item.value)) {
         values.push(item.value);
       }
-      const newValue = values.filter(Boolean).join(', ');
+      newValue = values.filter(Boolean).join(', ');
       if (valueP) valueP.textContent = newValue;
       else valueDiv.textContent = newValue;
     }
 
-    // 4. Serialize and save
+    // 3. Serialize and save
     let updatedHtml = doc.documentElement.outerHTML;
     updatedHtml = updatedHtml.replace(/<!--[\s\S]*?-->/g, ''); // Remove comments
 
     const body = new FormData();
     body.append('data', new Blob([updatedHtml], { type: 'text/html' }));
 
+    // 4. Update document and then send text
     const updateResponse = await actions.daFetch(sourceUrl, {
       method: 'POST',
       body,
     });
     if (!updateResponse.ok) throw new Error(`Failed to update page: ${updateResponse.statusText}`);
-    //alert('Author info added to page!');
-    if (updateResponse.ok) {
-      setTimeout(async () => {
-        if (item.parsed && item.parsed.text) {
-          await actions.sendText(item.parsed.text);
-        } else if (item.key) {
-          await actions.sendText(item.key);
-        }
-        await actions.closeLibrary();
-      }, 1000); // Delay by 500ms (adjust as needed)
+
+    // Only after update, send text to editor and close library
+    if (item.parsed && item.parsed.text) {
+      await actions.sendText(item.parsed.text);
+    } else if (item.key) {
+      await actions.sendText(item.key);
     }
-    
-    
-    
+    await actions.closeLibrary();
+
   } catch (error) {
     // eslint-disable-next-line no-console
     console.error('Error inserting author info:', error);
