@@ -81,6 +81,12 @@ async function insertAuthorToPage(item) {
   try {
     const { context, token, actions } = await DA_SDK;
 
+    if (item.parsed && item.parsed.text) {
+        await actions.sendText(item.parsed.text);
+      } else if (item.key) {
+        await actions.sendText(item.key);
+    }
+
     // 1. Download the page source
     const sourceUrl = `${DA_ORIGIN}/source/${context.org}/${context.repo}${context.path}.html`;
     const response = await actions.daFetch(sourceUrl);
@@ -144,16 +150,7 @@ async function insertAuthorToPage(item) {
     if (!updateResponse.ok) throw new Error(`Failed to update page: ${updateResponse.statusText}`);
 
     // Only after update, send text to editor and close library
-    
-    setTimeout(async () => {
-      if (item.parsed && item.parsed.text) {
-        await actions.sendText(item.parsed.text);
-      } else if (item.key) {
-        await actions.sendText(item.key);
-      }
       await actions.closeLibrary();
-    }, 5000);
-    await actions.closeLibrary();
 
   } catch (error) {
     // eslint-disable-next-line no-console
