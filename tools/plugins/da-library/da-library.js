@@ -144,13 +144,15 @@ async function insertAuthorToPage(item) {
     if (!updateResponse.ok) throw new Error(`Failed to update page: ${updateResponse.statusText}`);
 
     // Only after update, send text to editor and close library
-    const resourceUrl = `${DA_ORIGIN}/source/${context.org}/${context.repo}${context.path}.html`;
-    const reresponse = await actions.daFetch(resourceUrl);
-    if (item.parsed && item.parsed.text) {
-      await actions.sendText(item.parsed.text);
-    } else if (item.key) {
-      await actions.sendText(item.key);
-    }
+    
+    setTimeout(async () => {
+      if (item.parsed && item.parsed.text) {
+        await actions.sendText(item.parsed.text);
+      } else if (item.key) {
+        await actions.sendText(item.key);
+      }
+      await actions.closeLibrary();
+    }, 5000);
     await actions.closeLibrary();
 
   } catch (error) {
