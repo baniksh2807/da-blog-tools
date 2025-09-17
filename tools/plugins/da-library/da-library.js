@@ -4,7 +4,6 @@ import DA_SDK from 'https://da.live/nx/utils/sdk.js';
 import { DA_ORIGIN } from 'https://da.live/nx/public/utils/constants.js';
 
 const REPLACE_CONTENT = 'CONTENT';
-let sourceContent = '';
 
 function getQueryParam(param) {
   const urlParams = new URLSearchParams(window.location.search);
@@ -81,8 +80,13 @@ window.insertAuthorToPage = insertAuthorToPage;
 async function insertAuthorToPage(item) {
   try {
     const { context, token, actions } = await DA_SDK;
-    const sourceUrl = `${DA_ORIGIN}/source/${context.org}/${context.repo}${context.path}.html`;
     
+    // 1. Download the page source
+    const sourceUrl = `${DA_ORIGIN}/source/${context.org}/${context.repo}${context.path}.html`;
+    const response = await actions.daFetch(sourceUrl);
+    if (!response.ok) throw new Error(`Failed to fetch page source: ${response.statusText}`);
+    const sourceContent = await response.text();
+
     // 2. Parse HTML
     const parser = new DOMParser();
     const doc = parser.parseFromString(sourceContent, 'text/html');
@@ -166,16 +170,14 @@ async function insertAuthorToPage(item) {
       body,
     });
     if (!updateResponse.ok) throw new Error(`Failed to update page: ${updateResponse.statusText}`);
-    //alert('Author info added to page!');
-      if (updateResponse.ok){
-        if (item.parsed && item.parsed.text) {
-              await actions.sendText(item.parsed.text);
-            } else if (item.key) {
-              await actions.sendText(item.key);
-            }
-        await actions.closeLibrary();
+    alert('Author info added to page!');
+    if (item.parsed && item.parsed.text) {
+      await actions.sendText(item.parsed.text);
+    } else if (item.key) {
+      await actions.sendText(item.key);
     }
     
+    await actions.closeLibrary();
   } catch (error) {
     // eslint-disable-next-line no-console
     console.error('Error inserting author info:', error);
@@ -205,12 +207,6 @@ async function displayListValue() {
       // Check if contentPath is a full URL or relative path
       const isFullUrl = contentPath.startsWith('http://') || contentPath.startsWith('https://');
       let adminApiUrl = isFullUrl ? contentPath : `${DA_ORIGIN}/source/${context.org}/${context.repo}${contentPath}`;
-
-      // 1. Download the page source
-      const sourceUrl = `${DA_ORIGIN}/source/${context.org}/${context.repo}${context.path}.html`;
-      const domResponse = await actions.daFetch(sourceUrl);
-      if (!domResponse.ok) throw new Error(`Failed to fetch page source: ${domResponse.statusText}`);
-      sourceContent = await domResponse.text();
 
       // Fetch the main JSON (multi-sheet or regular)
       const response = isFullUrl ? await fetch(adminApiUrl) : await actions.daFetch(adminApiUrl);
