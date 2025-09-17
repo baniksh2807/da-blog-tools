@@ -93,9 +93,9 @@ async function insertAuthorToPage(item) {
 
     // 3. Download the page source
     const sourceUrl = `${DA_ORIGIN}/source/${context.org}/${context.repo}${context.path}.html`;
-    const response = await actions.daFetch(sourceUrl);
+    const response = actions.daFetch(sourceUrl);
     if (!response.ok) throw new Error(`Failed to fetch page source: ${response.statusText}`);
-    const sourceContent = await response.text();
+    const sourceContent = response.text();
 
     // 4. Parse HTML and update metadata (your existing logic)
     const parser = new DOMParser();
