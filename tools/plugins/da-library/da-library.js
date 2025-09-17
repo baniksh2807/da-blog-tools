@@ -165,7 +165,7 @@ async function insertAuthorToPage(item) {
     const body = new FormData();
     body.append('data', new Blob([updatedHtml], { type: 'text/html' }));
 
-    const updateResponse = await actions.daFetch(sourceUrl, {
+    const updateResponse = actions.daFetch(sourceUrl, {
       method: 'POST',
       body,
     });
