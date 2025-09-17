@@ -131,19 +131,27 @@ async function insertAuthorToPage(item) {
 
     // 3. Serialize and save
     let updatedHtml = doc.documentElement.outerHTML;
-    updatedHtml = updatedHtml.replace(/<!--[\s\S]*?-->/g, '');
+    updatedHtml = updatedHtml.replace(/<!--[\s\S]*?-->/g, ''); // Remove comments
+
     const body = new FormData();
     body.append('data', new Blob([updatedHtml], { type: 'text/html' }));
 
-    // Use the helper and pass the callback
-    await updateDocumentAndCallback(sourceUrl, body, async (actions) => {
-      if (item.parsed && item.parsed.text) {
-        await actions.sendText(item.parsed.text);
-      } else if (item.key) {
-        await actions.sendText(item.key);
-      }
-      await actions.closeLibrary();
+    // 4. Update document and then send text
+    const updateResponse = await actions.daFetch(sourceUrl, {
+      method: 'POST',
+      body,
     });
+    if (!updateResponse.ok) throw new Error(`Failed to update page: ${updateResponse.statusText}`);
+
+    // Only after update, send text to editor and close library
+    const resourceUrl = `${DA_ORIGIN}/source/${context.org}/${context.repo}${context.path}.html`;
+    const reresponse = await actions.daFetch(resourceUrl);
+    if (item.parsed && item.parsed.text) {
+      await actions.sendText(item.parsed.text);
+    } else if (item.key) {
+      await actions.sendText(item.key);
+    }
+    await actions.closeLibrary();
 
   } catch (error) {
     // eslint-disable-next-line no-console
