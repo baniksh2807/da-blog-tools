@@ -131,25 +131,19 @@ async function insertAuthorToPage(item) {
 
     // 3. Serialize and save
     let updatedHtml = doc.documentElement.outerHTML;
-    updatedHtml = updatedHtml.replace(/<!--[\s\S]*?-->/g, ''); // Remove comments
-
+    updatedHtml = updatedHtml.replace(/<!--[\s\S]*?-->/g, '');
     const body = new FormData();
     body.append('data', new Blob([updatedHtml], { type: 'text/html' }));
 
-    // 4. Update document and then send text
-    const updateResponse = await actions.daFetch(sourceUrl, {
-      method: 'POST',
-      body,
+    // Use the helper and pass the callback
+    await updateDocumentAndCallback(sourceUrl, body, async (actions) => {
+      if (item.parsed && item.parsed.text) {
+        await actions.sendText(item.parsed.text);
+      } else if (item.key) {
+        await actions.sendText(item.key);
+      }
+      await actions.closeLibrary();
     });
-    if (!updateResponse.ok) throw new Error(`Failed to update page: ${updateResponse.statusText}`);
-
-    // Only after update, send text to editor and close library
-    if (item.parsed && item.parsed.text) {
-      await actions.sendText(item.parsed.text);
-    } else if (item.key) {
-      await actions.sendText(item.key);
-    }
-    await actions.closeLibrary();
 
   } catch (error) {
     // eslint-disable-next-line no-console
@@ -157,6 +151,17 @@ async function insertAuthorToPage(item) {
     // Optionally, show an error message
     // alert('Failed to add author info: ' + error.message);
   }
+}
+
+async function updateDocumentAndCallback(sourceUrl, body, callback) {
+  const { actions } = await DA_SDK;
+  const updateResponse = await actions.daFetch(sourceUrl, {
+    method: 'POST',
+    body,
+  });
+  if (!updateResponse.ok) throw new Error(`Failed to update page: ${updateResponse.statusText}`);
+  // Execute the callback after update
+  await callback(actions);
 }
 
 async function displayListValue() {
