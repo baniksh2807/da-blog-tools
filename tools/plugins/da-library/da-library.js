@@ -170,17 +170,13 @@ async function insertAuthorToPage(item) {
       body,
     });
     if (!updateResponse.ok) throw new Error(`Failed to update page: ${updateResponse.statusText}`);
-   // alert('Author info added to page!');
-    // Delay sending text to the editor by 500ms
-    setTimeout(async () => {
-      if (item.parsed && item.parsed.text) {
-        await actions.sendText(item.parsed.text);
-      } else if (item.key) {
-        await actions.sendText(item.key);
-      }
-      await actions.closeLibrary();
-    }, 500);
-
+    //alert('Author info added to page!');
+    if (item.parsed && item.parsed.text) {
+      await actions.sendText(item.parsed.text);
+    } else if (item.key) {
+      await actions.sendText(item.key);
+    }
+    
     await actions.closeLibrary();
   } catch (error) {
     // eslint-disable-next-line no-console
