@@ -171,13 +171,17 @@ async function insertAuthorToPage(item) {
     });
     if (!updateResponse.ok) throw new Error(`Failed to update page: ${updateResponse.statusText}`);
     //alert('Author info added to page!');
-    if (item.parsed && item.parsed.text) {
-      await actions.sendText(item.parsed.text);
-    } else if (item.key) {
-      await actions.sendText(item.key);
+    if(updateResponse.ok){
+      if (item.parsed && item.parsed.text) {
+        await actions.sendText(item.parsed.text);
+      } else if (item.key) {
+        await actions.sendText(item.key);
+      }
+      await actions.closeLibrary();
     }
     
-    await actions.closeLibrary();
+    
+    
   } catch (error) {
     // eslint-disable-next-line no-console
     console.error('Error inserting author info:', error);
