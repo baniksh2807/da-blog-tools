@@ -82,16 +82,24 @@ async function insertAuthorToPage(item) {
     const { context, token, actions } = await DA_SDK;
 
     const authorKey = item.key;
+    const resultDiv = document.getElementById('sheetDataList');
 
     if (item.parsed && item.parsed.text) {
         await actions.sendText(item.parsed.text);
       } else if (item.key) {
         await actions.sendText(authorKey);
     }
-
+    resultDiv.innerHTML = `
+        <div id="sheetDataList">
+          <div class="loading-spinner">
+            <div class="spinner"></div>
+            <p>Wait for sometime...to update the author</p>
+          </div>
+        </div>
+      `;
     // Add a delay before saving
     await new Promise(resolve => setTimeout(resolve, 3000)); // 500ms delay
-
+      
     // 1. Download the page source
     const sourceUrl = `${DA_ORIGIN}/source/${context.org}/${context.repo}${context.path}.html`;
     const response = await actions.daFetch(sourceUrl);
