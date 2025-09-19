@@ -89,6 +89,9 @@ async function insertAuthorToPage(item) {
         await actions.sendText(authorKey);
     }
 
+    // Add a delay before saving
+await new Promise(resolve => setTimeout(resolve, 3000)); // 500ms delay
+
     // 1. Download the page source
     const sourceUrl = `${DA_ORIGIN}/source/${context.org}/${context.repo}${context.path}.html`;
     const response = await actions.daFetch(sourceUrl);
