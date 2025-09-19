@@ -81,10 +81,12 @@ async function insertAuthorToPage(item) {
   try {
     const { context, token, actions } = await DA_SDK;
 
+    const authorKey = item.key;
+
     if (item.parsed && item.parsed.text) {
         await actions.sendText(item.parsed.text);
       } else if (item.key) {
-        await actions.sendText(item.key);
+        await actions.sendText(authorKey);
     }
 
     // 1. Download the page source
