@@ -77,7 +77,7 @@ window.insertAuthorToPage = insertAuthorToPage;
  * Utility to insert author info into the article header, article summary, and metadata.
  * @param {Object} item - The author item (expects { key, value })
  */
-async function insertAuthorToPage(item) {
+/* async function insertAuthorToPage(item) {
   try {
     const { context, token, actions } = await DA_SDK;
 
@@ -162,6 +162,75 @@ async function insertAuthorToPage(item) {
     console.error('Error inserting author info:', error);
     // Optionally, show an error message
     // alert('Failed to add author info: ' + error.message);
+  }
+} */
+
+async function insertAuthorToPage(item) {
+  try {
+    const { context, token, actions } = await DA_SDK;
+
+    const authorKey = item.key;
+
+    // Step 1: Send text (await completion)
+    if (item.parsed && item.parsed.text) {
+      await actions.sendText(item.parsed.text);
+    } else if (item.key) {
+      await actions.sendText(authorKey);
+    }
+
+    // Step 2: After sendText is done, perform document update
+    const sourceUrl = `${DA_ORIGIN}/source/${context.org}/${context.repo}${context.path}.html`;
+    const response = await actions.daFetch(sourceUrl);
+    if (!response.ok) throw new Error(`Failed to fetch page source: ${response.statusText}`);
+    const sourceContent = await response.text();
+
+    // Parse HTML etc. (keep your previous HTML parsing and updating logic here)
+    const parser = new DOMParser();
+    const doc = parser.parseFromString(sourceContent, 'text/html');
+
+    let metadata = doc.querySelector('.metadata');
+    if (!metadata) {
+      metadata = doc.createElement('div');
+      metadata.className = 'metadata';
+      const main = doc.querySelector('main') || doc.body;
+      main.insertBefore(metadata, main.firstChild);
+    }
+    let authorRow = Array.from(metadata.children).find(row => {
+      const keyDiv = row.children[0];
+      const keyElement = keyDiv.querySelector('p');
+      const keyText = keyElement ? keyElement.textContent.trim().toLowerCase() : keyDiv.textContent.trim().toLowerCase();
+      return keyText === 'author';
+    });
+    let newValue;
+    if (!authorRow) {
+      authorRow = doc.createElement('div');
+      authorRow.innerHTML = `<div><p>author</p></div><div><p>${item.value}</p></div>`;
+      metadata.appendChild(authorRow);
+      newValue = item.value;
+    } else {
+      const valueDiv = authorRow.children[1];
+      const valueP = valueDiv.querySelector('p');
+      let currentValue = valueP ? valueP.textContent.trim() : valueDiv.textContent.trim();
+      const values = currentValue ? currentValue.split(',').map(v => v.trim()) : [];
+      if (!values.includes(item.value)) {
+        values.push(item.value);
+      }
+      newValue = values.filter(Boolean).join(', ');
+      if (valueP) valueP.textContent = newValue;
+      else valueDiv.textContent = newValue;
+    }
+
+    let updatedHtml = doc.documentElement.outerHTML;
+    const body = new FormData();
+    body.append('data', new Blob([updatedHtml], { type: 'text/html' }));
+
+    // Use the callback function pattern for update and further actions
+    await updateDocumentAndCallback(sourceUrl, body, async (actions) => {
+      await actions.closeLibrary();
+    });
+
+  } catch (error) {
+    console.error('Error inserting author info:', error);
   }
 }
 
