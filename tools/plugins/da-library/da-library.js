@@ -139,7 +139,7 @@ async function insertAuthorToPage(item) {
 
     // 3. Serialize and save
     let updatedHtml = doc.documentElement.outerHTML;
-    updatedHtml = updatedHtml.replace(/<!--[\s\S]*?-->/g, ''); // Remove comments
+    //updatedHtml = updatedHtml.replace(/<!--[\s\S]*?-->/g, ''); // Remove comments
 
     const body = new FormData();
     body.append('data', new Blob([updatedHtml], { type: 'text/html' }));
