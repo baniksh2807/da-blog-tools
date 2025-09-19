@@ -98,7 +98,7 @@ async function insertAuthorToPage(item) {
     // 2. Parse HTML
     const parser = new DOMParser();
     const doc = parser.parseFromString(sourceContent, 'text/html');
-
+    console.log('before updating:', doc.documentElement.outerHTML);
     // --- METADATA BLOCK ---
     let metadata = doc.querySelector('.metadata');
     if (!metadata) {
@@ -140,7 +140,7 @@ async function insertAuthorToPage(item) {
     // 3. Serialize and save
     let updatedHtml = doc.documentElement.outerHTML;
     //updatedHtml = updatedHtml.replace(/<!--[\s\S]*?-->/g, ''); // Remove comments
-
+    console.log('Saving:', updatedHtml);
     const body = new FormData();
     body.append('data', new Blob([updatedHtml], { type: 'text/html' }));
 
