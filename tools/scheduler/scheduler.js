@@ -44,8 +44,13 @@ function displaySchedules(path, json) {
   }
 
   const scheduleList = schedules
-    .map((row) => `${row.command.split(' ')[0]}ing ${row.when}`)
+    .map((row) => {
+      const action = row.command.split(' ')[0];
+      const localTime = convertCronTimeToLocal(row.when);
+      return `${action}ing ${localTime}`;
+    })
     .join('\r\n');
+  
   messageUtils.show(`Schedules for ${path}:\r\n${scheduleList}`);
 }
 
@@ -190,6 +195,22 @@ function createCronExpression(localDate) {
   } in ${utcDate.getUTCFullYear()}`;
 }
 
+// Convert UTC time to local timezone for display
+function convertScheduleTimesToLocal(schedules) {
+  return schedules.map(schedule => {
+    if (schedule.time || schedule.datetime) {
+      const utcTime = schedule.time || schedule.datetime;
+      const localTime = new Date(utcTime).toLocaleString();
+      return {
+        ...schedule,
+        displayTime: localTime, // For user display
+        originalTime: utcTime   // Keep original UTC for cron
+      };
+    }
+    return schedule;
+  });
+}
+
 /**
  * Processes a schedule command by updating the crontab
  * @param {string} url - API endpoint URL
@@ -225,6 +246,8 @@ async function processCommand(url, opts, command, pagePath, cronExpression) {
   const previewSuccess = await previewCronTab(url, opts);
   if (previewSuccess) {
     messageUtils.show('');
+    const schedules = await getSchedules(url, opts);
+    const localizedSchedules = convertScheduleTimesToLocal(schedules);
     displaySchedules(pagePath, await getSchedules(url, opts));
     return true;
   }
