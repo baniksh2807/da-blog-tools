@@ -195,20 +195,47 @@ function createCronExpression(localDate) {
   } in ${utcDate.getUTCFullYear()}`;
 }
 
-// Convert UTC time to local timezone for display
-function convertScheduleTimesToLocal(schedules) {
-  return schedules.map(schedule => {
-    if (schedule.time || schedule.datetime) {
-      const utcTime = schedule.time || schedule.datetime;
-      const localTime = new Date(utcTime).toLocaleString();
-      return {
-        ...schedule,
-        displayTime: localTime, // For user display
-        originalTime: utcTime   // Keep original UTC for cron
-      };
-    }
-    return schedule;
+// Convert UTC schedule time to local time for display
+function convertCronTimeToLocal(cronExpression) {
+  // Parse the cron expression like "at 2:30 PM on the 25th day of December in 2024"
+  const match = cronExpression.match(/at (\d+:\d+\s*(?:AM|PM)) on the (\d+)(?:st|nd|rd|th) day of (\w+) in (\d+)/i);
+  if (!match) return cronExpression; // Return original if can't parse
+  
+  const [, timeStr, day, month, year] = match;
+  
+  // Parse the time
+  const [hours, minutes] = timeStr.match(/(\d+):(\d+)/).slice(1);
+  let hour = parseInt(hours, 10);
+  const minute = parseInt(minutes, 10);
+  
+  // Convert 12-hour to 24-hour format for UTC
+  if (timeStr.toUpperCase().includes('PM') && hour < 12) hour += 12;
+  if (timeStr.toUpperCase().includes('AM') && hour === 12) hour = 0;
+  
+  // Get month index
+  const monthIndex = new Date(`${month} 1, 2000`).getMonth();
+  
+  // Create UTC date
+  const utcDate = new Date(Date.UTC(
+    parseInt(year, 10),
+    monthIndex,
+    parseInt(day, 10),
+    hour,
+    minute
+  ));
+  
+  // Convert to local time for display
+  const localTimeFormatter = new Intl.DateTimeFormat('en-US', {
+    hour: 'numeric',
+    minute: '2-digit',
+    hour12: true,
+    day: 'numeric',
+    month: 'long',
+    year: 'numeric'
   });
+  
+  const formattedLocal = localTimeFormatter.format(utcDate);
+  return `at ${formattedLocal}`;
 }
 
 /**
@@ -247,8 +274,7 @@ async function processCommand(url, opts, command, pagePath, cronExpression) {
   if (previewSuccess) {
     messageUtils.show('');
     const schedules = await getSchedules(url, opts);
-    const localizedSchedules = convertScheduleTimesToLocal(schedules);
-    displaySchedules(pagePath, await getSchedules(url, opts));
+    displaySchedules(pagePath, schedules); // Remove duplicate call and use proper function
     return true;
   }
   return false;
@@ -275,42 +301,9 @@ function showCurrentSchedule(path, json) {
       const time = document.createElement('div');
       time.className = 'schedule-time';
 
-      // Convert UTC schedule time to local time for display
-      const whenParts = schedule.when.match(/at (.*?) on the/);
-      if (whenParts) {
-        const utcTimeStr = whenParts[1];
-        const utcDateStr = schedule.when.match(/the (\d+).*? day of (.*?) in (\d+)/);
-        if (utcDateStr) {
-          const [, day, month, year] = utcDateStr;
-          // Create a proper date string that JavaScript can parse
-          const monthIndex = new Date(`${month} 1, 2000`).getMonth(); // Get month index (0-11)
-          const utcDate = new Date(Date.UTC(
-            year,
-            monthIndex,
-            day,
-            ...utcTimeStr.match(/(\d+):(\d+)/).slice(1).map(Number),
-          ));
-
-          const timeFormatter = new Intl.DateTimeFormat('en-US', {
-            hour: 'numeric',
-            minute: '2-digit',
-            hour12: true,
-          });
-          const dateFormatter = new Intl.DateTimeFormat('en-US', {
-            day: 'numeric',
-            month: 'long',
-            year: 'numeric',
-          });
-
-          const formattedTime = timeFormatter.format(utcDate);
-          const formattedDate = dateFormatter.format(utcDate);
-          time.textContent = `at ${formattedTime} on ${formattedDate}`;
-        } else {
-          time.textContent = schedule.when;
-        }
-      } else {
-        time.textContent = schedule.when;
-      }
+      // Use the convertCronTimeToLocal function for consistent conversion
+      const localTimeDisplay = convertCronTimeToLocal(schedule.when);
+      time.textContent = localTimeDisplay.replace('at ', ''); // Remove 'at' prefix for cleaner display
 
       row.append(action, time);
       content.appendChild(row);
