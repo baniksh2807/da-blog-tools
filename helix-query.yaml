@@ -6,10 +6,7 @@ indices:
       - '/media/**'
     target: /media-index.json
     properties:
-      path:
-        select: none
-        value: path
-      name:
-        select: none
+      title:
+        select: head > title
         value: |
-          path.split('/').pop()
+          textContent(el)
