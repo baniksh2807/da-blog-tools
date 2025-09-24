@@ -1,71 +1,15 @@
 version: 1
 
 indices:
-  default:
-    include:
-      - '/microsoft-fabric/blog/**'
-    target: /microsoft-fabric/blog/query-index.json
-    properties: &defaultProps
-      title:
-        select: head > meta[property="og:title"]
-        value: |
-          attribute(el, 'content')
-      lastModified:
-        select: none
-        value: |
-          parseTimestamp(headers['last-modified'], 'ddd, DD MMM YYYY hh:mm:ss GMT')
-      tags:
-        select: head > meta[name="article-tag"]
-        values: |
-          attribute(el, 'content')
-      description:
-        select: head > meta[name="description"]
-        value: |
-          attribute(el, 'content')
-      image:
-        select: head > meta[property="og:image"]
-        value: |
-          match(attribute(el, 'content'), 'https:\/\/[^/]+(\/.*)')
-      contentType:
-        select: head > meta[name="content-type"]
-        value: |
-          attribute(el, 'content')
-      readTime:
-        select: head > meta[name="read-time"]
-        value: |
-          attribute(el, 'content')
-      author:
-        select: head > meta[name="author"]
-        value: |
-          attribute(el, 'content')
-      type:
-        select: head > meta[name="type"]
-        value: |
-          attribute(el, 'content')
-      originalPublishDate:
-        select: head > meta[name="original-publish-date"]
-        value: |
-          parseTimestamp(attribute(el, 'content'), 'MM/DD/YYYY')
-      robots:
-        select: head > meta[name="robots"]
-        value: |
-          attribute(el, 'content')
- 
-  en-us:
-    include:
-      - '/en-us/microsoft-fabric/blog/**'
-    exclude:
-      - '**/fragments/**'
-    target: /en-us/microsoft-fabric/blog/query-index.json
-    properties:
-      <<: *defaultProps
-
   media:
     include:
       - '/media/**'
     target: /media-index.json
     properties:
       path:
-        select: document
+        select: none
+        value: path
+      name:
+        select: none
         value: |
-          path(el)
+          path.split('/').pop()
