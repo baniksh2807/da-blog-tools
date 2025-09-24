@@ -69,19 +69,3 @@ indices:
         select: document
         value: |
           path(el)
-      url:
-        select: document
-        value: |
-          concat('https://media.business.edge.delivery/', path(el))
-      filename:
-        select: document
-        value: |
-          basename(path(el))
-      size:
-        select: document
-        value: |
-          attribute(el, 'content-length')
-      lastModified:
-        select: none
-        value: |
-          parseTimestamp(headers['last-modified'], 'ddd, DD MMM YYYY hh:mm:ss GMT')
