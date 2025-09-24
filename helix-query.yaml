@@ -6,7 +6,6 @@ indices:
       - '/media/**'
     target: /media-index.json
     properties:
-      title:
-        select: head > title
-        value: |
-          textContent(el)
+      path:
+        select: none
+        value: path
