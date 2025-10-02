@@ -43,10 +43,14 @@ function displaySchedules(path, json) {
     return;
   }
 
+  // Get selected timezone for display
+  const timezoneSelect = document.getElementById('timezone-select');
+  const selectedTimezone = timezoneSelect?.value || Intl.DateTimeFormat().resolvedOptions().timeZone;
+
   const scheduleList = schedules
     .map((row) => {
       const action = row.command.split(' ')[0];
-      const localTime = convertCronTimeToLocal(row.when);
+      const localTime = convertCronTimeToLocal(row.when, selectedTimezone);
       return `${action}ing ${localTime}`;
     })
     .join('\r\n');
@@ -170,13 +174,56 @@ async function getSchedules(url, opts) {
   }
 }
 
+// Add timezone utility functions at the top
+function populateTimezones() {
+  const timezoneSelect = document.getElementById('timezone-select');
+  const commonTimezones = [
+    { value: 'America/New_York', label: 'Eastern Time (ET)' },
+    { value: 'America/Chicago', label: 'Central Time (CT)' },
+    { value: 'America/Denver', label: 'Mountain Time (MT)' },
+    { value: 'America/Los_Angeles', label: 'Pacific Time (PT)' },
+    { value: 'UTC', label: 'UTC' },
+    { value: 'Europe/London', label: 'London (GMT)' },
+    { value: 'Europe/Paris', label: 'Paris (CET)' },
+    { value: 'Asia/Tokyo', label: 'Tokyo (JST)' },
+    { value: 'Asia/Shanghai', label: 'Shanghai (CST)' },
+    { value: 'Australia/Sydney', label: 'Sydney (AEST)' }
+  ];
+
+  // Detect user's timezone as default
+  const userTimezone = Intl.DateTimeFormat().resolvedOptions().timeZone;
+  
+  commonTimezones.forEach(tz => {
+    const option = document.createElement('option');
+    option.value = tz.value;
+    option.textContent = tz.label;
+    if (tz.value === userTimezone) {
+      option.selected = true;
+    }
+    timezoneSelect.appendChild(option);
+  });
+  
+  // If user's timezone not in common list, add it
+  if (!commonTimezones.find(tz => tz.value === userTimezone)) {
+    const option = document.createElement('option');
+    option.value = userTimezone;
+    option.textContent = userTimezone;
+    option.selected = true;
+    timezoneSelect.appendChild(option);
+  }
+}
+
 // Update the createCronExpression function
-function createCronExpression(localDate) {
-  const utcDate = new Date(localDate.toUTCString());
+function createCronExpression(localDate, timezone) {
+  // Create a date in the specified timezone
+  const zonedDate = new Date(localDate.toLocaleString('en-US', { timeZone: timezone }));
+  
+  // Convert to UTC for cron expression
+  const utcDate = new Date(localDate.getTime() - (zonedDate.getTime() - localDate.getTime()));
+  
   const day = utcDate.getUTCDate();
   const suffix = ['th', 'st', 'nd', 'rd'][(day % 10 > 3 || day < 21) ? 0 : day % 10];
 
-  // Format time separately
   const timeFormatter = new Intl.DateTimeFormat('en-US', {
     hour: 'numeric',
     minute: '2-digit',
@@ -184,7 +231,6 @@ function createCronExpression(localDate) {
     timeZone: 'UTC',
   });
 
-  // Format month separately
   const monthFormatter = new Intl.DateTimeFormat('en-US', {
     month: 'long',
     timeZone: 'UTC',
@@ -196,26 +242,21 @@ function createCronExpression(localDate) {
 }
 
 // Convert UTC schedule time to local time for display
-function convertCronTimeToLocal(cronExpression) {
-  // Parse the cron expression like "at 2:30 PM on the 25th day of December in 2024"
+function convertCronTimeToLocal(cronExpression, displayTimezone = null) {
   const match = cronExpression.match(/at (\d+:\d+\s*(?:AM|PM)) on the (\d+)(?:st|nd|rd|th) day of (\w+) in (\d+)/i);
-  if (!match) return cronExpression; // Return original if can't parse
+  if (!match) return cronExpression;
   
   const [, timeStr, day, month, year] = match;
   
-  // Parse the time
   const [hours, minutes] = timeStr.match(/(\d+):(\d+)/).slice(1);
   let hour = parseInt(hours, 10);
   const minute = parseInt(minutes, 10);
   
-  // Convert 12-hour to 24-hour format for UTC
   if (timeStr.toUpperCase().includes('PM') && hour < 12) hour += 12;
   if (timeStr.toUpperCase().includes('AM') && hour === 12) hour = 0;
   
-  // Get month index
   const monthIndex = new Date(`${month} 1, 2000`).getMonth();
   
-  // Create UTC date
   const utcDate = new Date(Date.UTC(
     parseInt(year, 10),
     monthIndex,
@@ -224,18 +265,26 @@ function convertCronTimeToLocal(cronExpression) {
     minute
   ));
   
-  // Convert to local time for display
+  // Use display timezone or user's local timezone
+  const timezone = displayTimezone || Intl.DateTimeFormat().resolvedOptions().timeZone;
+  
   const localTimeFormatter = new Intl.DateTimeFormat('en-US', {
     hour: 'numeric',
     minute: '2-digit',
     hour12: true,
     day: 'numeric',
     month: 'long',
-    year: 'numeric'
+    year: 'numeric',
+    timeZone: timezone
   });
   
   const formattedLocal = localTimeFormatter.format(utcDate);
-  return `at ${formattedLocal}`;
+  const tzAbbr = new Intl.DateTimeFormat('en', { 
+    timeZoneName: 'short', 
+    timeZone: timezone 
+  }).formatToParts(utcDate).find(part => part.type === 'timeZoneName')?.value || '';
+  
+  return `at ${formattedLocal} ${tzAbbr}`;
 }
 
 /**
@@ -289,6 +338,11 @@ function showCurrentSchedule(path, json) {
     content.textContent = 'No active schedules found';
   } else {
     content.innerHTML = '';
+    
+    // Get selected timezone for display
+    const timezoneSelect = document.getElementById('timezone-select');
+    const selectedTimezone = timezoneSelect?.value || Intl.DateTimeFormat().resolvedOptions().timeZone;
+    
     schedules.forEach((schedule) => {
       const row = document.createElement('div');
       row.className = 'schedule-row';
@@ -301,9 +355,8 @@ function showCurrentSchedule(path, json) {
       const time = document.createElement('div');
       time.className = 'schedule-time';
 
-      // Use the convertCronTimeToLocal function for consistent conversion
-      const localTimeDisplay = convertCronTimeToLocal(schedule.when);
-      time.textContent = localTimeDisplay.replace('at ', ''); // Remove 'at' prefix for cleaner display
+      const localTimeDisplay = convertCronTimeToLocal(schedule.when, selectedTimezone);
+      time.textContent = localTimeDisplay.replace('at ', '');
 
       row.append(action, time);
       content.appendChild(row);
@@ -312,12 +365,18 @@ function showCurrentSchedule(path, json) {
 }
 
 // Add validation function for future date/time
-function isDateTimeInFuture(dateStr, timeStr) {
+function isDateTimeInFuture(dateStr, timeStr, timezone) {
+  // Create date in selected timezone
   const selectedDateTime = new Date(`${dateStr}T${timeStr}`);
+  
+  // Get current time in the selected timezone
   const now = new Date();
-  return selectedDateTime > now;
+  const nowInTimezone = new Date(now.toLocaleString('en-US', { timeZone: timezone }));
+  const timezoneOffset = now.getTime() - nowInTimezone.getTime();
+  const adjustedSelectedTime = new Date(selectedDateTime.getTime() + timezoneOffset);
+  
+  return adjustedSelectedTime > now;
 }
-
 /**
  * Initializes the scheduler interface
  * @returns {Promise<void>}
@@ -325,16 +384,19 @@ function isDateTimeInFuture(dateStr, timeStr) {
 async function init() {
   const { context, token } = await DA_SDK;
 
+  // Populate timezone dropdown
+  populateTimezones();
+
   // Set page path
   const pageInput = document.getElementById('page-path');
   pageInput.value = context.path;
 
-  // Handle custom button
   const customButton = document.querySelector('.custom-button');
   const cronExpressionContainer = document.querySelector('.cron-expression-container');
   const customInput = document.querySelector('.custom-input');
   const dateInput = document.querySelector('#date-input');
   const timeInput = document.querySelector('#time-input');
+  const timezoneSelect = document.getElementById('timezone-select');
 
   // Set current date and time as default values
   const now = new Date();
@@ -342,11 +404,25 @@ async function init() {
   dateInput.value = dateValue;
   timeInput.value = now.toTimeString().slice(0, 5);
 
+  // Add timezone change event listener to update schedule display
+  timezoneSelect.addEventListener('change', async () => {
+    const url = `${DA_SOURCE}/${context.org}/${context.repo}/${CRON_TAB_PATH}`;
+    const opts = {
+      headers: {
+        Authorization: `Bearer ${token}`,
+      },
+    };
+    const json = await getSchedules(url, opts);
+    if (json && json.data) {
+      showCurrentSchedule(context.path, json);
+    }
+  });
+
+  // Rest of the existing event listeners...
   customButton.addEventListener('click', () => {
     const isCustom = !cronExpressionContainer.classList.contains('custom-mode');
     cronExpressionContainer.classList.toggle('custom-mode');
 
-    // Clear any existing empty states
     [dateInput, timeInput, customInput].forEach((input) => {
       input.classList.remove('input-empty');
     });
@@ -361,31 +437,30 @@ async function init() {
     }
   });
 
-  // Handle docs button
   const docsButton = document.querySelector('.docs-button');
   docsButton.addEventListener('click', () => {
     window.open('https://www.aem.live/docs/scheduling', '_blank');
   });
+
   const url = `${DA_SOURCE}/${context.org}/${context.repo}/${CRON_TAB_PATH}`;
   const opts = {
     headers: {
       Authorization: `Bearer ${token}`,
     },
   };
-  // Handle schedule button
+
   const scheduleButton = document.querySelector('.schedule-button');
   scheduleButton.addEventListener('click', async (e) => {
     e.preventDefault();
 
     const action = document.querySelector('.action-select').value;
     const isCustomMode = cronExpressionContainer.classList.contains('custom-mode');
+    const selectedTimezone = timezoneSelect.value;
 
-    // Clear previous empty states
     [dateInput, timeInput, customInput].forEach((input) => {
       input.classList.remove('input-empty');
     });
 
-    // Check for empty inputs and future date/time based on mode
     if (isCustomMode) {
       if (!customInput.value) {
         customInput.classList.add('input-empty');
@@ -403,8 +478,7 @@ async function init() {
       }
       if (hasError) return;
 
-      // Validate if date/time is in the future
-      if (!isDateTimeInFuture(dateInput.value, timeInput.value)) {
+      if (!isDateTimeInFuture(dateInput.value, timeInput.value, selectedTimezone)) {
         dateInput.classList.add('input-empty');
         timeInput.classList.add('input-empty');
         messageUtils.show('Please select a future date and time', true);
@@ -416,15 +490,15 @@ async function init() {
     if (isCustomMode) {
       cronExpression = customInput.value;
     } else {
-      const localDate = new Date(`${dateInput.value}T${timeInput.value}`);
-      cronExpression = createCronExpression(localDate);
+      const inputDateTime = `${dateInput.value}T${timeInput.value}`;
+      const localDate = new Date(inputDateTime);
+      cronExpression = createCronExpression(localDate, selectedTimezone);
     }
 
     messageUtils.show('Scheduling page...');
     const success = await processCommand(url, opts, action, context.path, cronExpression);
     if (success) {
       messageUtils.show('');
-      // Fetch and update current schedules after successful scheduling
       const json = await getSchedules(url, opts);
       if (json && json.data) {
         showCurrentSchedule(context.path, json);

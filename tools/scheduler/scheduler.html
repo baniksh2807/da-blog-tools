@@ -28,6 +28,9 @@
         <div class="cron-expression-container" role="group" aria-label="Schedule date and time">
           <input type="date" id="date-input" aria-label="Schedule date">
           <input type="time" id="time-input" aria-label="Schedule time">
+          <select id="timezone-select" class="timezone-select" aria-label="Select timezone">
+            <!-- Timezone options will be populated by JavaScript -->
+          </select>
           <button type="button" class="custom-button" aria-label="Switch to custom cron expression">Custom</button>
           <input type="text" class="custom-input" id="custom-input" placeholder="Enter cron expression" aria-label="Custom cron expression">
         </div>
