@@ -248,7 +248,16 @@ async function displayListValue() {
             }
           } else {
             if (rawItems && rawItems.length > 0) {
-              sheetDataListDiv.innerHTML = renderItems(rawItems, 'sheet');
+             // Apply format to sheet data like in the single-sheet logic
+              const rawUrl = window.location.href;
+              const hasComma = rawUrl.includes('CONTENT%2C') || rawUrl.includes('CONTENT,');
+              const effectiveFormat = format || 'CONTENT';
+              const finalFormat = hasComma && !effectiveFormat.endsWith(',') ? `${effectiveFormat},` : effectiveFormat;
+              
+              // Format the data if format is provided
+              const formattedItems = finalFormat ? formatData({ data: rawItems }, finalFormat) : rawItems;
+              
+              sheetDataListDiv.innerHTML = renderItems(formattedItems, 'sheet');
             } else {
               sheetDataListDiv.innerHTML = `<div class="no-value"><p>No data found for "${selectedSheet}"</p></div>`;
             }
