@@ -45,7 +45,7 @@ const API = {
 };
 
 // Multi-Path Management Functions
-function addSearchPath(path) {
+/* function addSearchPath(path) {
   if (!path || path.trim() === '') return false;
 
   const normalizedPath = path.trim().startsWith('/') ? path.trim() : `/${path.trim()}`;
@@ -70,6 +70,24 @@ function addSearchPath(path) {
   app.searchPaths.push(normalizedPath);
   renderPathTags();
   updatePathInfo();
+  return true;
+} */
+
+function addSearchPath(path) {
+  if (!path || path.trim() === '') return false;
+
+  const normalizedPath = path.trim().startsWith('/') ? path.trim() : `/${path.trim()}`;
+
+  if (app.searchPaths.includes(normalizedPath)) {
+    showMessage(`Path "${normalizedPath}" is already added`, 'warning');
+    return false;
+  }
+
+  // Allow any path without validation - user knows their folder structure
+  app.searchPaths.push(normalizedPath);
+  renderPathTags();
+  updatePathInfo();
+  showMessage(`Added path: ${normalizedPath}`, 'success');
   return true;
 }
 
@@ -2081,7 +2099,7 @@ function triggerPathSuggestions() {
   pathInput.dispatchEvent(inputEvent);
 }
 
-async function loadFolderTree() {
+/* async function loadFolderTree() {
   try {
     const { token } = app;
     if (!token) {
@@ -2145,6 +2163,244 @@ async function loadFolderTree() {
     hideSearchPathsLoader();
     showMessage('Could not load folder structure for autocomplete', 'error');
     app.availablePaths = [];
+  }
+} */
+
+/* async function loadFolderTree() {
+  try {
+    const orgSite = parseOrgSite();
+    if (!orgSite) {
+      showSearchPathsMessage();
+      return;
+    }
+
+    const { org, site } = orgSite;
+    
+    // Check if we have cached folder structure
+    const cacheKey = `folderTree_${org}_${site}`;
+    const cached = sessionStorage.getItem(cacheKey);
+    if (cached) {
+      try {
+        app.availablePaths = JSON.parse(cached);
+        hideSearchPathsLoader();
+        setupPathAutocomplete();
+        return;
+      } catch (e) {
+        // Invalid cache, continue with fetch
+      }
+    }
+
+    showSearchPathsLoader();
+
+    const folders = new Set();
+    let fileCount = 0;
+    const MAX_FILES = 10000; // Limit to prevent overwhelming the browser
+    let completed = false;
+
+    try {
+      // Use a more efficient approach - fetch query-index.json if available
+      const queryIndexUrl = `https://${org}--${site}.aem.live/query-index.json`;
+      const response = await fetch(queryIndexUrl, {
+        method: 'GET',
+        headers: { 'Accept': 'application/json' }
+      });
+
+      if (response.ok) {
+        const data = await response.json();
+        if (data && data.data) {
+          data.data.forEach(item => {
+            if (item.path) {
+              const folderPath = item.path.substring(0, item.path.lastIndexOf('/'));
+              if (folderPath && folderPath !== '/') {
+                folders.add(folderPath);
+                // Add parent paths
+                const parts = folderPath.split('/').filter(Boolean);
+                for (let i = 1; i < parts.length; i++) {
+                  folders.add(`/${parts.slice(0, i).join('/')}`);
+                }
+              }
+            }
+          });
+          completed = true;
+        }
+      }
+    } catch (e) {
+      console.warn('Could not load from query-index, falling back to crawl:', e);
+    }
+
+    // Fallback to crawl if query-index failed
+    if (!completed) {
+      const { results } = crawl({
+        origin: `https://${org}--${site}.aem.live`,
+        callback: (file) => {
+          fileCount++;
+          
+          // Stop if we've processed too many files
+          if (fileCount > MAX_FILES) {
+            return;
+          }
+
+          const filePath = file.path || '';
+          const folderPath = filePath.substring(0, filePath.lastIndexOf('/'));
+          
+          if (folderPath && folderPath !== '/') {
+            folders.add(folderPath);
+
+            // Add parent paths
+            const parts = folderPath.split('/').filter(Boolean);
+            for (let i = 1; i < parts.length; i++) {
+              folders.add(`/${parts.slice(0, i).join('/')}`);
+            }
+          }
+
+          // Show progress for large structures
+          if (fileCount % 100 === 0) {
+            showMessage(`Loading folder structure... (${fileCount} files processed)`, 'info');
+          }
+        },
+        throttle: 5, // Reduce throttle to speed up
+        method: 'GET',
+      });
+
+      // Add timeout with warning instead of hard failure
+      const timeoutPromise = new Promise((resolve) => {
+        setTimeout(() => {
+          showMessage('Large folder structure - using partial results', 'warning');
+          resolve();
+        }, 15000); // Reduced timeout
+      });
+
+      await Promise.race([results, timeoutPromise]);
+    }
+
+    // Convert to sorted array
+    app.availablePaths = Array.from(folders).sort();
+
+    // Cache the results
+    try {
+      sessionStorage.setItem(cacheKey, JSON.stringify(app.availablePaths));
+    } catch (e) {
+      // Storage quota exceeded, ignore
+    }
+
+    hideSearchPathsLoader();
+    setupPathAutocomplete();
+    
+    showMessage(`Loaded ${app.availablePaths.length} folders`, 'success');
+
+  } catch (error) {
+    console.error('Error loading folder tree:', error);
+    hideSearchPathsLoader();
+    
+    // Provide fallback common paths
+    app.availablePaths = [
+      '/',
+      '/blog',
+      '/articles',
+      '/news',
+      '/docs',
+      '/products',
+      '/resources'
+    ];
+    
+    showMessage('Using default folder suggestions. Enter a custom path or wait and try again.', 'warning');
+    setupPathAutocomplete();
+  }
+} */
+
+  async function loadFolderTree() {
+  try {
+    const orgSite = parseOrgSite();
+    if (!orgSite) {
+      return; // Silently fail if no org/site configured
+    }
+
+    const { org, site } = orgSite;
+    
+    // Check cache first
+    const cacheKey = `folderTree_${org}_${site}`;
+    const cached = sessionStorage.getItem(cacheKey);
+    if (cached) {
+      try {
+        app.availablePaths = JSON.parse(cached);
+        setupPathAutocomplete();
+        showMessage('Loaded folder structure from cache', 'success');
+        return;
+      } catch (e) {
+        // Invalid cache, continue
+      }
+    }
+
+    // Show non-blocking message
+    showMessage('Loading folder structure in background...', 'info');
+
+    const folders = new Set();
+    let fileCount = 0;
+    const MAX_FILES = 5000; // Reduced limit for faster loading
+    let completed = false;
+
+    try {
+      // Try query-index first (fastest)
+      const queryIndexUrl = `https://${org}--${site}.aem.live/query-index.json`;
+      const response = await fetch(queryIndexUrl, {
+        method: 'GET',
+        headers: { 'Accept': 'application/json' }
+      });
+
+      if (response.ok) {
+        const data = await response.json();
+        if (data && data.data) {
+          data.data.forEach(item => {
+            if (item.path) {
+              const folderPath = item.path.substring(0, item.path.lastIndexOf('/'));
+              if (folderPath && folderPath !== '/') {
+                folders.add(folderPath);
+                const parts = folderPath.split('/').filter(Boolean);
+                for (let i = 1; i < parts.length; i++) {
+                  folders.add(`/${parts.slice(0, i).join('/')}`);
+                }
+              }
+            }
+          });
+          completed = true;
+        }
+      }
+    } catch (e) {
+      console.warn('Query index not available, will use manual path entry');
+    }
+
+    // Only use crawl as fallback if query-index failed AND user explicitly wants it
+    if (!completed) {
+      // Don't automatically crawl - let user enter paths manually
+      showMessage('Autocomplete not available. Enter paths manually (e.g., /blog, /drafts)', 'info');
+      return;
+    }
+
+    // Convert to sorted array
+    app.availablePaths = Array.from(folders).sort();
+
+    // Cache the results
+    try {
+      sessionStorage.setItem(cacheKey, JSON.stringify(app.availablePaths));
+    } catch (e) {
+      // Storage quota exceeded, ignore
+    }
+
+    setupPathAutocomplete();
+    showMessage(`Autocomplete ready with ${app.availablePaths.length} folders`, 'success');
+
+  } catch (error) {
+    console.warn('Folder tree loading failed, manual entry still works:', error);
+    // Don't show error - manual entry still works
+  }
+}
+
+function clearFolderTreeCache() {
+  const orgSite = parseOrgSite();
+  if (orgSite) {
+    const { org, site } = orgSite;
+    const cacheKey = `folderTree_${org}_${site}`;
+    sessionStorage.removeItem(cacheKey);
   }
 }
 
@@ -2577,7 +2833,7 @@ function toggleFolder(folderId, suggestionsList) {
   }
 }
 
-function setupPathAutocomplete() {
+/* function setupPathAutocomplete() {
   const pathInput = document.getElementById('search-path-input');
   if (!pathInput) return; // Exit if input not found
   const pathContainer = pathInput.parentElement;
@@ -2662,6 +2918,147 @@ function setupPathAutocomplete() {
   pathInput.addEventListener('blur', hideSuggestions);
 
   // Keyboard navigation
+  pathInput.addEventListener('keydown', (e) => {
+    const items = suggestionsList.querySelectorAll('.suggestion-item:not(.collapsed)');
+
+    if (e.key === 'ArrowDown') {
+      e.preventDefault();
+      selectedIndex = Math.min(selectedIndex + 1, items.length - 1);
+      updateSelection(items);
+    } else if (e.key === 'ArrowUp') {
+      e.preventDefault();
+      selectedIndex = Math.max(selectedIndex - 1, -1);
+      updateSelection(items);
+    } else if (e.key === 'ArrowRight' && selectedIndex >= 0) {
+      e.preventDefault();
+      const selectedItem = items[selectedIndex];
+      if (selectedItem && selectedItem.classList.contains('has-children')) {
+        const folderId = selectedItem.getAttribute('data-id');
+        const expandIndicator = selectedItem.querySelector('.expand-indicator');
+        if (!expandIndicator.classList.contains('expanded')) {
+          toggleFolder(folderId, suggestionsList);
+        }
+      }
+    } else if (e.key === 'ArrowLeft' && selectedIndex >= 0) {
+      e.preventDefault();
+      const selectedItem = items[selectedIndex];
+      if (selectedItem && selectedItem.classList.contains('has-children')) {
+        const folderId = selectedItem.getAttribute('data-id');
+        const expandIndicator = selectedItem.querySelector('.expand-indicator');
+        if (expandIndicator.classList.contains('expanded')) {
+          toggleFolder(folderId, suggestionsList);
+        }
+      }
+    } else if (e.key === 'Enter' && selectedIndex >= 0) {
+      e.preventDefault();
+      isSelectingFromAutocomplete = true;
+      const selectedItem = items[selectedIndex];
+      if (selectedItem) {
+        const folderPath = selectedItem.getAttribute('data-path');
+        if (addSearchPath(folderPath)) {
+          pathInput.value = '';
+        }
+        suggestionsList.style.display = 'none';
+      }
+      setTimeout(() => {
+        isSelectingFromAutocomplete = false;
+      }, 100);
+    } else if (e.key === 'Escape') {
+      suggestionsList.style.display = 'none';
+      pathInput.blur();
+    }
+  });
+
+  function updateSelection(items) {
+    items.forEach((item, index) => {
+      if (index === selectedIndex) {
+        item.classList.add('selected');
+      } else {
+        item.classList.remove('selected');
+      }
+    });
+  }
+} */
+
+  function setupPathAutocomplete() {
+  const pathInput = document.getElementById('search-path-input');
+  if (!pathInput) return;
+
+  // Update placeholder to encourage manual entry
+  pathInput.placeholder = 'Type or paste folder paths (e.g., /drafts, /blog) - Press Enter to add';
+
+  const pathContainer = pathInput.parentElement;
+
+  // Create autocomplete container
+  let autocompleteContainer = document.getElementById('autocomplete-container');
+  if (!autocompleteContainer) {
+    autocompleteContainer = document.createElement('div');
+    autocompleteContainer.id = 'autocomplete-container';
+
+    const suggestionsList = document.createElement('div');
+    suggestionsList.id = 'suggestions-list';
+
+    pathInput.parentNode.insertBefore(autocompleteContainer, pathInput);
+    autocompleteContainer.appendChild(pathInput);
+    autocompleteContainer.appendChild(suggestionsList);
+  }
+
+  const suggestionsList = document.getElementById('suggestions-list');
+  let selectedIndex = -1;
+
+  function showSuggestions(query) {
+    // Only show autocomplete if folder structure is loaded
+    if (!app.availablePaths || app.availablePaths.length === 0) {
+      suggestionsList.style.display = 'none';
+      return;
+    }
+
+    const orgSite = parseOrgSite();
+    if (!orgSite) {
+      suggestionsList.style.display = 'none';
+      return;
+    }
+
+    hideSearchPathsMessage();
+
+    const folderTree = buildFolderTree(app.availablePaths, query);
+    if (Object.keys(folderTree).length === 0) {
+      suggestionsList.style.display = 'none';
+      return;
+    }
+
+    suggestionsList.innerHTML = '';
+    selectedIndex = -1;
+
+    renderTreeNodes(folderTree, suggestionsList, suggestionsList, pathInput);
+    suggestionsList.style.display = 'block';
+  }
+
+  function hideSuggestions() {
+    setTimeout(() => {
+      if (isInteractingWithTree) {
+        return;
+      }
+      suggestionsList.style.display = 'none';
+    }, 150);
+  }
+
+  pathInput.addEventListener('input', (e) => {
+    // Only show autocomplete if we have folder data
+    if (app.availablePaths && app.availablePaths.length > 0) {
+      showSuggestions(e.target.value);
+    }
+  });
+
+  pathInput.addEventListener('focus', () => {
+    if (app.availablePaths && app.availablePaths.length > 0) {
+      showSuggestions(pathInput.value);
+    }
+  });
+
+  pathInput.addEventListener('blur', hideSuggestions);
+
+  // Keyboard navigation (same as before)
   pathInput.addEventListener('keydown', (e) => {
     const items = suggestionsList.querySelectorAll('.suggestion-item:not(.collapsed)');
 
@@ -2807,7 +3204,7 @@ function toggleAccordion(contentId) {
 }
 
 function setupEventListeners() {
-  const scanBtn = document.getElementById('scan-btn');
+   const scanBtn = document.getElementById('scan-btn');
   const executeBtn = document.getElementById('execute-btn');
   const exportBtn = document.getElementById('export-btn');
   const revertBtn = document.getElementById('revert-btn');
@@ -2823,22 +3220,22 @@ function setupEventListeners() {
   if (revertBtn) revertBtn.addEventListener('click', bulkRevertLastReplacement);
   if (bulkPublishBtn) bulkPublishBtn.addEventListener('click', bulkOperation);
 
-  // Update button text when dropdown changes
   const bulkOperationSelect = document.getElementById('bulk-operation-type');
   if (bulkOperationSelect) {
     bulkOperationSelect.addEventListener('change', updateBulkButtonText);
-    updateBulkButtonText(); // Set initial text
+    updateBulkButtonText();
   }
 
-  // Set initial export button text
   updateExportButtonText();
 
-  // Multi-path input functionality with validation
+  // Enhanced path input functionality - always allow manual entry
   const pathInput = document.getElementById('search-path-input');
   if (pathInput) {
+    // Enable input immediately
+    pathInput.disabled = false;
+    
     pathInput.addEventListener('keydown', (e) => {
       if (e.key === 'Enter') {
-        // Check if autocomplete suggestions are visible
         const suggestionsList = document.getElementById('suggestions-list');
         const isAutocompleteActive = suggestionsList && suggestionsList.style.display !== 'none';
 
@@ -2853,7 +3250,6 @@ function setupEventListeners() {
     });
 
     pathInput.addEventListener('blur', () => {
-      // Don't process blur if user is selecting from autocomplete
       if (isSelectingFromAutocomplete) {
         return;
       }
@@ -2862,9 +3258,20 @@ function setupEventListeners() {
         pathInput.value = '';
       }
     });
+
+    // Optional: Try to load folder tree in background on first focus
+    let folderTreeAttempted = false;
+    pathInput.addEventListener('focus', () => {
+      if (!folderTreeAttempted) {
+        folderTreeAttempted = true;
+        // Non-blocking background load
+        loadFolderTree().catch(() => {
+          // Silently fail - manual entry still works
+        });
+      }
+    });
   }
 
-  // Include subfolders checkbox
   const includeSubfoldersCheckbox = document.getElementById('include-subfolders');
   if (includeSubfoldersCheckbox) {
     includeSubfoldersCheckbox.addEventListener('change', updatePathInfo);
@@ -2977,29 +3384,28 @@ function setupEventListeners() {
     const orgSiteInput = document.getElementById('org-site-path');
     if (orgSiteInput) {
       orgSiteInput.addEventListener('blur', () => {
-        // Reset flag so tree reloads with new org/site
-        folderTreeLoaded = false;
-        // Check if we should show the message
         const orgSite = parseOrgSite();
+        const pathInput = document.getElementById('search-path-input');
+        
         if (!orgSite) {
-          showSearchPathsMessage();
+          showMessage('Please enter org/site in format: /org/site', 'warning');
+          if (pathInput) pathInput.disabled = true;
         } else {
-          hideSearchPathsMessage();
-          // Enable search paths input immediately when valid org/site is entered
-          const pathInput = document.getElementById('search-path-input');
-          if (pathInput) pathInput.disabled = false;
+          // Enable manual path entry immediately
+          if (pathInput) {
+            pathInput.disabled = false;
+            pathInput.focus();
+          }
+          showMessage('You can now enter search paths manually', 'success');
         }
       });
 
       orgSiteInput.addEventListener('input', () => {
-        // Real-time validation as user types
         const orgSite = parseOrgSite();
-        if (!orgSite) {
-          showSearchPathsMessage();
-        } else {
-          hideSearchPathsMessage();
-          // Enable search paths input immediately when valid org/site is entered
-          const pathInput = document.getElementById('search-path-input');
+        const pathInput = document.getElementById('search-path-input');
+        
+        if (orgSite) {
+          // Enable path input as soon as valid org/site is entered
           if (pathInput) pathInput.disabled = false;
         }
       });
@@ -3165,7 +3571,7 @@ function setupEventListeners() {
   }
 }
 
-async function init() {
+/* async function init() {
   try {
     const { context, token, actions } = await DA_SDK;
 
@@ -3186,6 +3592,29 @@ async function init() {
     showMessage('FindReplace Pro is ready! Enter your org/site to get started.', 'success');
 
     // Folder tree will be loaded on-demand when user focuses on base path field
+  } catch (error) {
+    showMessage('Failed to initialize app', 'error');
+  }
+} */
+
+async function init() {
+  try {
+    const { context, token, actions } = await DA_SDK;
+
+    app.context = context;
+    app.token = token;
+    app.actions = actions;
+
+    setupEventListeners();
+    renderPathTags();
+    updatePathInfo();
+
+    // Always setup autocomplete structure (even if folder tree isn't loaded)
+    setupPathAutocomplete();
+
+    showMessage('FindReplace Pro ready! Enter org/site and search paths to get started.', 'success');
+
+    // Don't wait for folder tree - let users work immediately
   } catch (error) {
     showMessage('Failed to initialize app', 'error');
   }
