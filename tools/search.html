@@ -244,7 +244,98 @@
             </div>
           </div>
         </div>
+        <div class="accordion-card">
+          <div class="accordion-header" data-accordion-target="html-operations">
+            <h3>HTML Operations</h3>
+            <img src="./search/icons/chevron-down.svg" alt="Toggle" class="accordion-icon">
+          </div>
+          <div id="html-operations" class="accordion-content">
+            
+            <!-- Add HTML Node Section -->
+            <div class="form-section">
+              <h4>Add HTML Node</h4>
+              <p class="help-text">Add HTML content to pages at a specified location</p>
+              
+              <div class="form-group">
+                <label for="html-content">HTML Content to Add:</label>
+                <textarea 
+                  id="html-content" 
+                  rows="8" 
+                  placeholder="Enter HTML to add (e.g., <div class='header-article-pro'>...</div>)"
+                ></textarea>
+              </div>
 
+              <div class="form-group">
+                <label for="insert-position">Insert Position:</label>
+                <select id="insert-position">
+                  <option value="append">Append (at end of target)</option>
+                  <option value="prepend">Prepend (at beginning of target)</option>
+                  <option value="before">Before (before target element)</option>
+                  <option value="after">After (after target element)</option>
+                </select>
+              </div>
+
+              <div class="form-group">
+                <label for="target-selector">Target Selector (optional):</label>
+                <input 
+                  type="text" 
+                  id="target-selector" 
+                  placeholder="CSS selector (e.g., main, .content) - leave empty for main/body"
+                >
+                <small class="help-text">Leave empty to target main content area</small>
+              </div>
+
+              <button id="add-html-btn" class="btn btn-primary" disabled>
+                <span>Add HTML to Selected Files</span>
+              </button>
+            </div>
+
+            <hr style="margin: 30px 0; border: none; border-top: 1px solid #e0e0e0;">
+
+            <!-- Delete HTML Node Section -->
+            <div class="form-section">
+              <h4>Delete HTML Node</h4>
+              <p class="help-text">Remove HTML elements matching a CSS selector</p>
+              
+              <div class="form-group">
+                <label for="delete-selector">CSS Selector to Delete:</label>
+                <input 
+                  type="text" 
+                  id="delete-selector" 
+                  placeholder="Enter CSS selector (e.g., .header-article-pro, #hero)"
+                >
+                <small class="help-text">All matching elements will be removed from selected files</small>
+              </div>
+
+              <button id="delete-html-btn" class="btn btn-danger" disabled>
+                <span>Delete Elements from Selected Files</span>
+              </button>
+            </div>
+
+            <hr style="margin: 30px 0; border: none; border-top: 1px solid #e0e0e0;">
+
+            <!-- Scan for Elements Section -->
+            <div class="form-section">
+              <h4>Scan for Elements</h4>
+              <p class="help-text">Find all pages containing elements matching a CSS selector</p>
+              
+              <div class="form-group">
+                <label for="scan-selector">CSS Selector to Find:</label>
+                <input 
+                  type="text" 
+                  id="scan-selector" 
+                  placeholder="Enter CSS selector (e.g., .header-article-pro)"
+                >
+                <small class="help-text">Scan will show all pages containing these elements</small>
+              </div>
+
+              <button id="scan-elements-btn" class="btn btn-secondary">
+                <span>Scan for Elements</span>
+              </button>
+            </div>
+
+          </div>
+        </div>
         <!-- Action Bar -->
         <div class="action-bar">
           <div class="primary-actions">
