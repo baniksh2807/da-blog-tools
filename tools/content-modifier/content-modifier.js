@@ -3,6 +3,9 @@
  * A comprehensive tool for bulk content modification in DA pages
  */
 
+// eslint-disable-next-line import/no-unresolved
+import DA_SDK from 'https://da.live/nx/utils/sdk.js';
+
 class ContentModifier {
   constructor() {
     this.currentUser = null;
@@ -45,23 +48,44 @@ class ContentModifier {
   }
 
   async initializeDA() {
-    // Check if DA SDK is available
-    if (typeof window.daFetch === 'undefined') {
-      throw new Error('DA SDK not available');
+    try {
+      // Wait for DA SDK to be available
+      let attempts = 0;
+      while (attempts < 10) {
+        try {
+          this.daSDK = await DA_SDK;
+          break;
+        } catch (error) {
+          attempts++;
+          await new Promise(resolve => setTimeout(resolve, 500));
+        }
+      }
+      
+      if (!this.daSDK) {
+        throw new Error('DA SDK failed to load after multiple attempts');
+      }
+      
+      // Get current user - if this fails, user might not be authenticated
+      this.currentUser = await this.getCurrentUser();
+      if (!this.currentUser) {
+        // Check if we're in the DA environment
+        if (!window.location.hostname.includes('da.live') && !window.location.hostname.includes('localhost')) {
+          throw new Error('Please access this tool from within the DA environment');
+        } else {
+          throw new Error('User not authenticated. Please log in to DA first.');
+        }
+      }
+      
+      console.log('DA initialized for user:', this.currentUser);
+    } catch (error) {
+      console.error('DA initialization error:', error);
+      throw error;
     }
-    
-    // Get current user
-    this.currentUser = await this.getCurrentUser();
-    if (!this.currentUser) {
-      throw new Error('User not authenticated');
-    }
-    
-    console.log('DA initialized for user:', this.currentUser);
   }
 
   async getCurrentUser() {
     try {
-      const response = await window.daFetch('/profile');
+      const response = await this.daSDK('/profile');
       if (response.ok) {
         return await response.json();
       }
@@ -269,7 +293,7 @@ class ContentModifier {
       const cleanPath = path.startsWith('/') ? path : '/' + path;
       
       // Get pages from DA API
-      const response = await window.daFetch(`/list${cleanPath}`);
+      const response = await this.daSDK(`/list${cleanPath}`);
       if (!response.ok) {
         throw new Error(`Failed to scan path ${path}: ${response.statusText}`);
       }
@@ -500,7 +524,7 @@ class ContentModifier {
   async previewPage(path) {
     try {
       // Fetch page content for preview
-      const response = await window.daFetch(`/source${path}`);
+      const response = await this.daSDK(`/source${path}`);
       if (!response.ok) {
         throw new Error(`Failed to fetch page: ${response.statusText}`);
       }
@@ -642,7 +666,7 @@ class ContentModifier {
 
   async modifyPage(path, config) {
     // Fetch current content
-    const response = await window.daFetch(`/source${path}`);
+    const response = await this.daSDK(`/source${path}`);
     if (!response.ok) {
       throw new Error(`Failed to fetch page: ${response.statusText}`);
     }
@@ -737,7 +761,7 @@ class ContentModifier {
   }
 
   async savePage(path, content) {
-    const response = await window.daFetch(`/source${path}`, {
+    const response = await this.daSDK(`/source${path}`, {
       method: 'PUT',
       headers: {
         'Content-Type': 'text/html'
@@ -934,8 +958,52 @@ class ContentModifier {
 // Initialize the application when the page loads
 let contentModifier;
 
-document.addEventListener('DOMContentLoaded', () => {
-  contentModifier = new ContentModifier();
+document.addEventListener('DOMContentLoaded', async () => {
+  try {
+    // Show loading state
+    document.body.innerHTML = `
+      <div style="display: flex; justify-content: center; align-items: center; height: 100vh; font-family: Arial, sans-serif;">
+        <div style="text-align: center;">
+          <div style="margin-bottom: 20px;">Loading DA Content Modifier...</div>
+          <div style="width: 40px; height: 40px; border: 4px solid #f3f3f3; border-top: 4px solid #0066cc; border-radius: 50%; animation: spin 1s linear infinite; margin: 0 auto;"></div>
+        </div>
+      </div>
+      <style>
+        @keyframes spin {
+          0% { transform: rotate(0deg); }
+          100% { transform: rotate(360deg); }
+        }
+      </style>
+    `;
+    
+    // Wait a bit for DA SDK to be available
+    await new Promise(resolve => setTimeout(resolve, 1000));
+    
+    // Restore original content
+    const response = await fetch(window.location.href);
+    const html = await response.text();
+    const parser = new DOMParser();
+    const doc = parser.parseFromString(html, 'text/html');
+    document.body.innerHTML = doc.body.innerHTML;
+    
+    // Initialize the content modifier
+    contentModifier = new ContentModifier();
+    
+  } catch (error) {
+    console.error('Failed to initialize application:', error);
+    document.body.innerHTML = `
+      <div style="display: flex; justify-content: center; align-items: center; height: 100vh; font-family: Arial, sans-serif; color: #dc3545;">
+        <div style="text-align: center; max-width: 500px; padding: 20px;">
+          <h2>Failed to Load DA Content Modifier</h2>
+          <p>Error: ${error.message}</p>
+          <p>Please make sure you are logged into DA and try refreshing the page.</p>
+          <button onclick="window.location.reload()" style="padding: 10px 20px; background: #0066cc; color: white; border: none; border-radius: 4px; cursor: pointer;">
+            Reload Page
+          </button>
+        </div>
+      </div>
+    `;
+  }
 });
 
 // Global functions for event handlers
