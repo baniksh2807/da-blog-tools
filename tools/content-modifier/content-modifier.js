@@ -5,6 +5,7 @@
 
 // eslint-disable-next-line import/no-unresolved
 import DA_SDK from 'https://da.live/nx/utils/sdk.js';
+import { crawl } from 'https://da.live/nx/public/utils/tree.js';
 
 class ContentModifier {
   constructor() {
@@ -18,7 +19,21 @@ class ContentModifier {
     this.isProcessing = false;
     this.modificationHistory = [];
     this.pathFilters = [];
-    
+    this.app = {
+      context: null,
+      token: null,
+      results: [],
+      selectedFiles: new Set(),
+      fileCache: new Map(),
+      availablePaths: [],
+      orgSiteCache: null, // Cache for org/site configuration
+      searchPaths: [], // Array to store multiple search paths
+      pagination: {
+        currentPage: 1,
+        totalPages: 1,
+        filteredResults: null,
+      },
+    };
     // Configuration
     this.config = {
       baseUrl: 'https://admin.da.live',
@@ -32,14 +47,17 @@ class ContentModifier {
   async init() {
     try {
       // Initialize DA SDK
-      await this.initializeDA();
-      
+      //await this.initializeDA();
+      const { context, token, actions } = await DA_SDK;
+      this.app.context = context;
+      this.app.token = token;
+      this.app.actions = actions;
       // Set up event listeners
-      this.setupEventListeners();
+     // this.setupEventListeners();
       
       // Initialize UI state
-      this.updateUI();
-      
+      //this.updateUI();
+      alert("Content Modifier initialized successfully")
       console.log('Content Modifier initialized successfully');
     } catch (error) {
       console.error('Failed to initialize Content Modifier:', error);
@@ -49,17 +67,14 @@ class ContentModifier {
 
   async initializeDA() {
     try {
-      // Wait for DA SDK to be available
-      let attempts = 0;
-      while (attempts < 10) {
+      
         try {
           this.daSDK = await DA_SDK;
-          break;
         } catch (error) {
           attempts++;
           await new Promise(resolve => setTimeout(resolve, 500));
         }
-      }
+      
       
       if (!this.daSDK) {
         throw new Error('DA SDK failed to load after multiple attempts');
