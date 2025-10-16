@@ -1982,3 +1982,287 @@ input, textarea, select {
 .filters-sidebar .input-field {
   margin-bottom: 0;
 }
+
+/* HTML Operations Section Styles */
+.form-section {
+  margin-bottom: 30px;
+  padding: 20px;
+  background: #f8f9fa;
+  border-radius: 8px;
+  border: 1px solid #e0e0e0;
+}
+
+.form-section h4 {
+  margin: 0 0 8px 0;
+  font-size: 18px;
+  font-weight: 600;
+  color: #2c3e50;
+}
+
+.form-section .help-text {
+  margin: 0 0 20px 0;
+  font-size: 14px;
+  color: #666;
+}
+
+.form-group {
+  margin-bottom: 20px;
+}
+
+.form-group:last-child {
+  margin-bottom: 0;
+}
+
+.form-group label {
+  display: block;
+  margin-bottom: 8px;
+  font-size: 14px;
+  font-weight: 500;
+  color: #333;
+}
+
+.form-group textarea {
+  width: 100%;
+  padding: 12px;
+  border: 1px solid #ccc;
+  border-radius: 4px;
+  font-family: 'Courier New', monospace;
+  font-size: 13px;
+  line-height: 1.5;
+  resize: vertical;
+  background: #fff;
+  transition: border-color 0.2s ease;
+}
+
+.form-group textarea:focus {
+  outline: none;
+  border-color: #4a90e2;
+  box-shadow: 0 0 0 3px rgba(74, 144, 226, 0.1);
+}
+
+.form-group input[type="text"] {
+  width: 100%;
+  padding: 10px 12px;
+  border: 1px solid #ccc;
+  border-radius: 4px;
+  font-size: 14px;
+  transition: border-color 0.2s ease;
+}
+
+.form-group input[type="text"]:focus {
+  outline: none;
+  border-color: #4a90e2;
+  box-shadow: 0 0 0 3px rgba(74, 144, 226, 0.1);
+}
+
+.form-group select {
+  width: 100%;
+  padding: 10px 12px;
+  border: 1px solid #ccc;
+  border-radius: 4px;
+  font-size: 14px;
+  background: #fff;
+  cursor: pointer;
+  transition: border-color 0.2s ease;
+}
+
+.form-group select:focus {
+  outline: none;
+  border-color: #4a90e2;
+  box-shadow: 0 0 0 3px rgba(74, 144, 226, 0.1);
+}
+
+.form-group small.help-text {
+  display: block;
+  margin-top: 6px;
+  font-size: 12px;
+  color: #666;
+  font-style: italic;
+}
+
+/* Button Styles for HTML Operations */
+.form-section .btn {
+  margin-top: 10px;
+  padding: 12px 24px;
+  font-size: 14px;
+  font-weight: 500;
+  border-radius: 6px;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  border: none;
+}
+
+.form-section .btn-primary {
+  background: #4a90e2;
+  color: white;
+}
+
+.form-section .btn-primary:hover:not(:disabled) {
+  background: #357abd;
+  transform: translateY(-1px);
+  box-shadow: 0 4px 12px rgba(74, 144, 226, 0.3);
+}
+
+.form-section .btn-danger {
+  background: #e74c3c;
+  color: white;
+}
+
+.form-section .btn-danger:hover:not(:disabled) {
+  background: #c0392b;
+  transform: translateY(-1px);
+  box-shadow: 0 4px 12px rgba(231, 76, 60, 0.3);
+}
+
+.form-section .btn-secondary {
+  background: #95a5a6;
+  color: white;
+}
+
+.form-section .btn-secondary:hover:not(:disabled) {
+  background: #7f8c8d;
+  transform: translateY(-1px);
+  box-shadow: 0 4px 12px rgba(149, 165, 166, 0.3);
+}
+
+.form-section .btn:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+  transform: none;
+}
+
+.form-section .btn:active:not(:disabled) {
+  transform: translateY(0);
+}
+
+/* Horizontal Rule Styling */
+.accordion-content hr {
+  margin: 30px 0;
+  border: none;
+  border-top: 1px solid #e0e0e0;
+}
+
+/* HTML Operations Accordion Specific */
+#html-operations {
+  padding: 24px;
+}
+
+#html-operations .form-section:first-child {
+  margin-top: 0;
+}
+
+#html-operations .form-section:last-child {
+  margin-bottom: 0;
+}
+
+/* Textarea placeholder styling */
+.form-group textarea::placeholder {
+  color: #999;
+  font-style: italic;
+}
+
+/* Input placeholder styling */
+.form-group input::placeholder {
+  color: #999;
+  font-style: italic;
+}
+
+/* Code-like text styling for selector inputs */
+.form-group input[type="text"][id*="selector"]::placeholder,
+.form-group input[type="text"][id*="selector"] {
+  font-family: 'Courier New', monospace;
+}
+
+/* Responsive adjustments */
+@media (max-width: 768px) {
+  .form-section {
+    padding: 16px;
+  }
+  
+  .form-section h4 {
+    font-size: 16px;
+  }
+  
+  .form-group textarea {
+    font-size: 12px;
+  }
+  
+  .form-section .btn {
+    width: 100%;
+    justify-content: center;
+  }
+}
+
+/* Success/Error states for form validation */
+.form-group.has-error input,
+.form-group.has-error textarea,
+.form-group.has-error select {
+  border-color: #e74c3c;
+}
+
+.form-group.has-success input,
+.form-group.has-success textarea,
+.form-group.has-success select {
+  border-color: #27ae60;
+}
+
+.form-group .error-message {
+  display: block;
+  margin-top: 6px;
+  font-size: 12px;
+  color: #e74c3c;
+}
+
+.form-group .success-message {
+  display: block;
+  margin-top: 6px;
+  font-size: 12px;
+  color: #27ae60;
+}
+
+/* Loading state for buttons */
+.form-section .btn.loading {
+  position: relative;
+  color: transparent;
+  pointer-events: none;
+}
+
+.form-section .btn.loading::after {
+  content: '';
+  position: absolute;
+  width: 16px;
+  height: 16px;
+  top: 50%;
+  left: 50%;
+  margin-left: -8px;
+  margin-top: -8px;
+  border: 2px solid rgba(255, 255, 255, 0.3);
+  border-radius: 50%;
+  border-top-color: white;
+  animation: button-loading-spinner 0.6s linear infinite;
+}
+
+@keyframes button-loading-spinner {
+  0% { transform: rotate(0deg); }
+  100% { transform: rotate(360deg); }
+}
+
+/* Accordion card styling for HTML Operations */
+.accordion-card #html-operations {
+  background: #ffffff;
+}
+
+/* Better visual separation */
+.form-section + hr {
+  margin: 30px -20px;
+  border-color: #ddd;
+}
+
+/* Icon support in buttons */
+.form-section .btn img.icon {
+  width: 16px;
+  height: 16px;
+}
