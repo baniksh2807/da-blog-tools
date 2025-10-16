@@ -1,0 +1,268 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>DA Content Modifier</title>
+    <link rel="stylesheet" href="./content-modifier.css">
+</head>
+<body>
+    <div class="app-container">
+        <!-- Header -->
+        <header class="app-header">
+            <div class="header-content">
+                <h1>DA Content Modifier</h1>
+                <p>Bulk modify, remove, or add content blocks across multiple DA pages</p>
+            </div>
+        </header>
+
+        <!-- Configuration Section -->
+        <div class="accordion-card expanded">
+            <div class="accordion-header" data-accordion-target="config-content">
+                <h2>Configuration</h2>
+                <img src="./icons/chevron-up.svg" alt="Toggle" class="accordion-icon">
+            </div>
+            <div class="accordion-content" id="config-content">
+                <!-- Org/Site Configuration -->
+                <div class="form-group">
+                    <label for="org-site-path">Organization & Site Path *</label>
+                    <input type="text" id="org-site-path" placeholder="e.g., /myorg/mysite">
+                    <div class="help-text">Enter your DA organization and site in format: /org/site</div>
+                </div>
+
+                <!-- Search Path Configuration -->
+                <div class="form-group">
+                    <label for="search-path-input">Content Path</label>
+                    <div class="path-input-container">
+                        <input type="text" id="search-path-input" placeholder="Enter path to modify (e.g., /blog, /products)">
+                        <button type="button" class="btn btn-secondary" id="add-path-btn">Add Path</button>
+                    </div>
+                    <div class="help-text">Specify which paths to modify. Leave empty to modify entire site.</div>
+                    
+                    <!-- Path Tags -->
+                    <div id="path-tags" class="path-tags"></div>
+                    
+                    <!-- Path Options -->
+                    <div class="checkbox-group">
+                        <label class="checkbox-label">
+                            <input type="checkbox" id="include-subfolders" checked>
+                            Include subfolders
+                        </label>
+                    </div>
+
+                    <!-- Path Info -->
+                    <div id="path-info" class="path-info">
+                        <div class="info-text">No paths selected - will search entire site including subfolders</div>
+                    </div>
+                </div>
+
+                <!-- Filter Options -->
+                <div class="form-group">
+                    <label>Filter Options</label>
+                    <div class="filter-options">
+                        <div class="form-row">
+                            <div class="form-col">
+                                <label for="exclude-paths">Exclude Paths</label>
+                                <input type="text" id="exclude-paths" placeholder="e.g., /drafts, /archive">
+                            </div>
+                            <div class="form-col">
+                                <label for="modified-since">Modified Since</label>
+                                <input type="date" id="modified-since">
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Action Buttons -->
+                <div class="form-actions">
+                    <button type="button" class="btn btn-primary" id="scan-btn">
+                        <span>Scan Pages</span>
+                    </button>
+                </div>
+            </div>
+        </div>
+
+        <!-- Results Summary -->
+        <div class="results-summary" style="display: none;">
+            <div class="summary-stats">
+                <div class="stat-item">
+                    <span class="stat-label">Pages Found:</span>
+                    <span class="stat-value" id="pages-found">0</span>
+                </div>
+                <div class="stat-item">
+                    <span class="stat-label">Selected:</span>
+                    <span class="stat-value" id="pages-selected">0</span>
+                </div>
+            </div>
+        </div>
+
+        <!-- Content Modification Section -->
+        <div class="accordion-card" id="modification-section" style="display: none;">
+            <div class="accordion-header" data-accordion-target="modification-content">
+                <h2>Content Modification</h2>
+                <img src="./icons/chevron-down.svg" alt="Toggle" class="accordion-icon">
+            </div>
+            <div class="accordion-content" id="modification-content" style="display: none;">
+                <!-- Operation Type -->
+                <div class="form-group">
+                    <label for="operation-type">Operation Type</label>
+                    <select id="operation-type" class="form-select">
+                        <option value="add">Add Content</option>
+                        <option value="remove">Remove Content</option>
+                        <option value="replace">Replace Content</option>
+                        <option value="update">Update Content</option>
+                    </select>
+                </div>
+
+                <!-- Target Location -->
+                <div class="form-group">
+                    <label for="target-location">Target Location</label>
+                    <select id="target-location" class="form-select">
+                        <option value="before-main">Before Main Content</option>
+                        <option value="after-main">After Main Content</option>
+                        <option value="before-metadata">Before Metadata</option>
+                        <option value="after-metadata">After Metadata</option>
+                        <option value="custom-selector">Custom CSS Selector</option>
+                        <option value="block-type">Specific Block Type</option>
+                    </select>
+                </div>
+
+                <!-- Custom Selector -->
+                <div class="form-group" id="custom-selector-group" style="display: none;">
+                    <label for="custom-selector">CSS Selector</label>
+                    <input type="text" id="custom-selector" placeholder="e.g., .hero, #banner, [data-block='cards']">
+                    <div class="help-text">Enter CSS selector for target elements</div>
+                </div>
+
+                <!-- Block Type -->
+                <div class="form-group" id="block-type-group" style="display: none;">
+                    <label for="block-type">Block Type</label>
+                    <input type="text" id="block-type" placeholder="e.g., hero, cards, accordion">
+                    <div class="help-text">Enter block class name to target</div>
+                </div>
+
+                <!-- Content to Find (for remove/replace operations) -->
+                <div class="form-group" id="find-content-group" style="display: none;">
+                    <label for="find-content">Content to Find</label>
+                    <textarea id="find-content" rows="4" placeholder="Enter HTML or text to find"></textarea>
+                    <div class="checkbox-group">
+                        <label class="checkbox-label">
+                            <input type="checkbox" id="use-regex">
+                            Use Regular Expression
+                        </label>
+                        <label class="checkbox-label">
+                            <input type="checkbox" id="case-sensitive">
+                            Case Sensitive
+                        </label>
+                    </div>
+                </div>
+
+                <!-- New Content -->
+                <div class="form-group" id="new-content-group">
+                    <label for="new-content">New Content</label>
+                    <textarea id="new-content" rows="6" placeholder="Enter HTML content to add/replace"></textarea>
+                    <div class="help-text">Enter HTML content. Use $1, $2, etc. for regex capture groups when replacing.</div>
+                </div>
+
+                <!-- Preview Section -->
+                <div class="form-group">
+                    <button type="button" class="btn btn-secondary" id="preview-changes-btn">
+                        Preview Changes
+                    </button>
+                    <div class="help-text">Preview changes before applying to see what will be modified</div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Pages List -->
+        <div class="accordion-card" id="pages-section" style="display: none;">
+            <div class="accordion-header" data-accordion-target="pages-content">
+                <h2>Pages</h2>
+                <img src="./icons/chevron-down.svg" alt="Toggle" class="accordion-icon">
+            </div>
+            <div class="accordion-content" id="pages-content" style="display: none;">
+                <!-- Page Controls -->
+                <div class="page-controls">
+                    <div class="control-group">
+                        <button type="button" class="btn btn-secondary" id="select-all-btn">Select All</button>
+                        <button type="button" class="btn btn-secondary" id="deselect-all-btn">Deselect All</button>
+                    </div>
+                    <div class="control-group">
+                        <input type="text" id="filter-pages" placeholder="Filter pages...">
+                    </div>
+                </div>
+
+                <!-- Pages List -->
+                <div id="pages-list" class="pages-list"></div>
+
+                <!-- Pagination -->
+                <div class="pagination-container" id="pagination-container" style="display: none;">
+                    <div class="pagination-info">
+                        <span id="pagination-info-text">Showing 1-10 of 100 pages</span>
+                    </div>
+                    <div class="pagination-controls">
+                        <button type="button" class="btn btn-secondary" id="prev-page" disabled>Previous</button>
+                        <div id="page-numbers" class="page-numbers"></div>
+                        <button type="button" class="btn btn-secondary" id="next-page">Next</button>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Action Section -->
+        <div class="action-section" id="action-section" style="display: none;">
+            <div class="action-buttons">
+                <button type="button" class="btn btn-primary" id="apply-changes-btn" disabled>
+                    <span id="apply-changes-text">Apply Changes</span>
+                </button>
+                <button type="button" class="btn btn-secondary" id="bulk-preview-btn" disabled>
+                    <span id="bulk-preview-text">Bulk Preview</span>
+                </button>
+                <button type="button" class="btn btn-success" id="bulk-publish-btn" disabled>
+                    <span id="bulk-publish-text">Bulk Publish</span>
+                </button>
+                <button type="button" class="btn btn-warning" id="export-pages-btn" disabled>
+                    Export Pages
+                </button>
+            </div>
+        </div>
+
+        <!-- Progress Bar -->
+        <div class="progress-container" style="display: none;">
+            <div class="progress-bar">
+                <div class="progress-fill"></div>
+            </div>
+            <div class="progress-text">Processing...</div>
+        </div>
+
+        <!-- Toast Notifications -->
+        <div id="toast" class="toast hidden">
+            <div class="toast-icon">
+                <img src="./icons/check.svg" alt="Success">
+            </div>
+            <div class="toast-content">
+                <div class="toast-message">Operation completed successfully</div>
+            </div>
+            <button type="button" class="toast-close">×</button>
+        </div>
+
+        <!-- Preview Modal -->
+        <div id="preview-modal" class="modal hidden">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h3>Content Modification Preview</h3>
+                    <button type="button" class="modal-close">×</button>
+                </div>
+                <div class="modal-body">
+                    <div id="preview-content" class="preview-content"></div>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary modal-close">Close</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script type="module" src="./content-modifier.js"></script>
+</body>
+</html>
