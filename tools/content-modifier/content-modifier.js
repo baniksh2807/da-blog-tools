@@ -123,7 +123,7 @@ class ContentModifier {
       this.addPath();
     });
 
-    document.getElementById('scan-pages-btn').addEventListener('click', () => {
+    document.getElementById('scan-btn').addEventListener('click', () => {
       this.scanPages();
     });
 
@@ -204,7 +204,7 @@ class ContentModifier {
   }
 
   addPath() {
-    const input = document.getElementById('path-input');
+    const input = document.getElementById('search-path-input');
     const path = input.value.trim();
     
     if (!path) {
