@@ -3214,11 +3214,21 @@ function setupEventListeners() {
   const expandAll = document.getElementById('expand-all');
   const collapseAll = document.getElementById('collapse-all');
 
+  // New buttons for HTML operations
+  const addHtmlBtn = document.getElementById('add-html-btn');
+  const deleteHtmlBtn = document.getElementById('delete-html-btn');
+  const scanElementsBtn = document.getElementById('scan-elements-btn');
+
   if (scanBtn) scanBtn.addEventListener('click', scanFiles);
   if (executeBtn) executeBtn.addEventListener('click', executeReplace);
   if (exportBtn) exportBtn.addEventListener('click', exportResults);
   if (revertBtn) revertBtn.addEventListener('click', bulkRevertLastReplacement);
   if (bulkPublishBtn) bulkPublishBtn.addEventListener('click', bulkOperation);
+
+  // Add event listeners for new HTML operation buttons
+  if (addHtmlBtn) addHtmlBtn.addEventListener('click', addHtmlNode);
+  if (deleteHtmlBtn) deleteHtmlBtn.addEventListener('click', deleteHtmlNode);
+  if (scanElementsBtn) scanElementsBtn.addEventListener('click', scanForElements);
 
   const bulkOperationSelect = document.getElementById('bulk-operation-type');
   if (bulkOperationSelect) {
@@ -3568,6 +3578,350 @@ function setupEventListeners() {
         replaceTermTextarea.placeholder = 'Enter replacement text (use $1, $2 for regex groups when using Regular Expression)';
       }
     });
+  }
+}
+/**
+ * Add HTML node to pages at specified location
+ */
+async function addHtmlNode() {
+  const selected = app.results.filter((r) => r.selected);
+
+  if (selected.length === 0) {
+    showMessage('No files selected', 'error');
+    return;
+  }
+
+  const htmlContent = document.getElementById('html-content')?.value?.trim();
+  const insertPosition = document.getElementById('insert-position')?.value || 'append';
+  const targetSelector = document.getElementById('target-selector')?.value?.trim();
+
+  if (!htmlContent) {
+    showMessage('Please enter HTML content to add', 'error');
+    return;
+  }
+
+  // Validate HTML
+  try {
+    const parser = new DOMParser();
+    const testDoc = parser.parseFromString(htmlContent, 'text/html');
+    if (testDoc.querySelector('parsererror')) {
+      showMessage('Invalid HTML content. Please check your HTML syntax.', 'error');
+      return;
+    }
+  } catch (e) {
+    showMessage('Invalid HTML content', 'error');
+    return;
+  }
+
+  const confirmMessage = targetSelector
+    ? `Add HTML node to ${insertPosition} of "${targetSelector}" in ${selected.length} files?`
+    : `Add HTML node to ${insertPosition} of document in ${selected.length} files?`;
+
+  if (!confirm(`${confirmMessage}\n\nSAFETY: Backup versions will be created first.`)) {
+    return;
+  }
+
+  try {
+    let successCount = 0;
+    let versionCount = 0;
+
+    const addPromises = selected.map(async (result, index) => {
+      const fileName = result.file.path.split('/').pop();
+
+      // Create version backup
+      updateProgress((index / selected.length) * 50, `Creating backup for ${fileName}...`);
+      const versionResult = await createVersion(result.file.path);
+
+      if (!versionResult) {
+        updateProgress(((index + 1) / selected.length) * 100, `Skipped ${fileName} - backup failed`);
+        return { success: false, versionCreated: false, skipped: true };
+      }
+
+      versionCount++;
+
+      // Add HTML node
+      updateProgress(((index + 0.5) / selected.length) * 100, `Adding HTML to ${fileName}...`);
+
+      try {
+        const parser = new DOMParser();
+        const doc = parser.parseFromString(result.originalContent, 'text/html');
+        
+        // Create the new node from HTML string
+        const tempDiv = document.createElement('div');
+        tempDiv.innerHTML = htmlContent.trim();
+        const newNode = tempDiv.firstElementChild;
+
+        if (!newNode) {
+          return { success: false, versionCreated: true, skipped: true, error: 'Invalid HTML structure' };
+        }
+
+        let targetElement;
+
+        // Find target element based on selector or default to body
+        if (targetSelector) {
+          targetElement = doc.querySelector(targetSelector);
+          if (!targetElement) {
+            return { success: false, versionCreated: true, skipped: true, error: `Target selector "${targetSelector}" not found` };
+          }
+        } else {
+          targetElement = doc.querySelector('main') || doc.body;
+        }
+
+        // Insert based on position
+        switch (insertPosition) {
+          case 'prepend':
+            targetElement.insertBefore(newNode, targetElement.firstChild);
+            break;
+          case 'append':
+            targetElement.appendChild(newNode);
+            break;
+          case 'before':
+            targetElement.parentNode.insertBefore(newNode, targetElement);
+            break;
+          case 'after':
+            targetElement.parentNode.insertBefore(newNode, targetElement.nextSibling);
+            break;
+          default:
+            targetElement.appendChild(newNode);
+        }
+
+        const updatedContent = doc.documentElement.outerHTML;
+        const success = await saveContent(result.file.path, updatedContent);
+        
+        return { success, versionCreated: true, skipped: false };
+      } catch (error) {
+        return { success: false, versionCreated: true, skipped: true, error: error.message };
+      }
+    });
+
+    const results = await Promise.all(addPromises);
+    successCount = results.filter((r) => r.success).length;
+    const skippedCount = results.filter((r) => r.skipped).length;
+
+    app.fileCache.clear();
+    updateProgress(100, 'Complete!');
+
+    if (skippedCount > 0) {
+      const errors = results.filter((r) => r.error).map((r) => r.error).join(', ');
+      showMessage(
+        `Added HTML to ${successCount}/${selected.length} files. Skipped ${skippedCount} files. ${errors ? `Errors: ${errors}` : ''}`,
+        'warning'
+      );
+    } else {
+      showMessage(`Successfully added HTML to ${successCount}/${selected.length} files!`, 'success');
+    }
+  } catch (error) {
+    showMessage(`Add HTML failed: ${error.message}`, 'error');
+    updateProgress(0, '');
+  }
+}
+
+/**
+ * Delete HTML nodes by class name from pages
+ */
+async function deleteHtmlNode() {
+  const selected = app.results.filter((r) => r.selected);
+
+  if (selected.length === 0) {
+    showMessage('No files selected', 'error');
+    return;
+  }
+
+  const deleteSelector = document.getElementById('delete-selector')?.value?.trim();
+
+  if (!deleteSelector) {
+    showMessage('Please enter a CSS selector (e.g., .header-article-pro)', 'error');
+    return;
+  }
+
+  if (!confirm(`Delete all elements matching "${deleteSelector}" from ${selected.length} files?\n\nSAFETY: Backup versions will be created first.`)) {
+    return;
+  }
+
+  try {
+    let successCount = 0;
+    let versionCount = 0;
+    let totalDeleted = 0;
+
+    const deletePromises = selected.map(async (result, index) => {
+      const fileName = result.file.path.split('/').pop();
+
+      // Create version backup
+      updateProgress((index / selected.length) * 50, `Creating backup for ${fileName}...`);
+      const versionResult = await createVersion(result.file.path);
+
+      if (!versionResult) {
+        updateProgress(((index + 1) / selected.length) * 100, `Skipped ${fileName} - backup failed`);
+        return { success: false, versionCreated: false, skipped: true, deletedCount: 0 };
+      }
+
+      versionCount++;
+
+      // Delete HTML nodes
+      updateProgress(((index + 0.5) / selected.length) * 100, `Deleting elements from ${fileName}...`);
+
+      try {
+        const parser = new DOMParser();
+        const doc = parser.parseFromString(result.originalContent, 'text/html');
+        
+        // Find all matching elements
+        const elementsToDelete = doc.querySelectorAll(deleteSelector);
+        const deletedCount = elementsToDelete.length;
+
+        if (deletedCount === 0) {
+          return { success: true, versionCreated: true, skipped: true, deletedCount: 0, noMatch: true };
+        }
+
+        // Remove all matching elements
+        elementsToDelete.forEach((element) => {
+          element.parentNode.removeChild(element);
+        });
+
+        const updatedContent = doc.documentElement.outerHTML;
+        const success = await saveContent(result.file.path, updatedContent);
+        
+        return { success, versionCreated: true, skipped: false, deletedCount };
+      } catch (error) {
+        return { success: false, versionCreated: true, skipped: true, deletedCount: 0, error: error.message };
+      }
+    });
+
+    const results = await Promise.all(deletePromises);
+    successCount = results.filter((r) => r.success).length;
+    const skippedCount = results.filter((r) => r.skipped && !r.noMatch).length;
+    const noMatchCount = results.filter((r) => r.noMatch).length;
+    totalDeleted = results.reduce((sum, r) => sum + r.deletedCount, 0);
+
+    app.fileCache.clear();
+    updateProgress(100, 'Complete!');
+
+    let message = `Deleted ${totalDeleted} element(s) from ${successCount} files.`;
+    if (noMatchCount > 0) {
+      message += ` ${noMatchCount} files had no matching elements.`;
+    }
+    if (skippedCount > 0) {
+      message += ` Skipped ${skippedCount} files due to errors.`;
+    }
+
+    showMessage(message, skippedCount > 0 ? 'warning' : 'success');
+  } catch (error) {
+    showMessage(`Delete HTML failed: ${error.message}`, 'error');
+    updateProgress(0, '');
+  }
+}
+
+/**
+ * Scan pages to find elements matching a selector
+ */
+async function scanForElements() {
+  resetPagination();
+
+  if (!validateOrgSite()) {
+    return;
+  }
+
+  const scanSelector = document.getElementById('scan-selector')?.value?.trim();
+
+  if (!scanSelector) {
+    showMessage('Please enter a CSS selector to scan for', 'error');
+    return;
+  }
+
+  try {
+    const pathsText = app.searchPaths.length === 0 ? 'entire site' : 
+                      app.searchPaths.length === 1 ? app.searchPaths[0] : 
+                      `${app.searchPaths.length} selected paths`;
+    
+    showMessage(`Scanning for "${scanSelector}" in ${pathsText}...`, 'info');
+    updateProgress(10, 'Fetching file list...');
+
+    const files = await fetchAllFiles();
+
+    if (files.length === 0) {
+      showMessage('No HTML files found', 'error');
+      updateProgress(0, '');
+      return;
+    }
+
+    app.results = [];
+    let filesScanned = 0;
+    let matchesFound = 0;
+
+    const processFile = async (file, index) => {
+      updateProgress(20 + (index / files.length) * 70, `Scanning ${file.name}...`);
+
+      const content = await fetchContent(file.path);
+      if (!content) return null;
+
+      const result = searchForElements(content, scanSelector);
+      if (result.matches.length > 0) {
+        return {
+          file,
+          matches: result.matches,
+          originalContent: content,
+          updatedContent: result.updatedContent,
+          selected: true,
+          foundElements: true,
+          elementCount: result.matches.length,
+        };
+      }
+      return null;
+    };
+
+    const results = await Promise.all(files.map(processFile));
+    app.results = results.filter((result) => result !== null);
+
+    app.selectedFiles.clear();
+    app.results.forEach((result, index) => {
+      app.selectedFiles.add(index);
+      result.matches.forEach((match) => {
+        if (match.selected === undefined) {
+          match.selected = true;
+        }
+      });
+    });
+
+    updateProgress(100, 'Scan complete!');
+
+    filesScanned = files.length;
+    matchesFound = app.results.reduce((total, result) => total + result.elementCount, 0);
+
+    document.getElementById('files-scanned').textContent = filesScanned;
+    document.getElementById('matches-found').textContent = matchesFound;
+    document.getElementById('files-affected').textContent = app.results.length;
+
+    displayResults();
+
+    const resultsContainer = document.querySelector('.results-container');
+    resultsContainer.style.display = 'block';
+
+    const resultsAccordion = document.getElementById('search-results');
+    if (resultsAccordion) {
+      resultsAccordion.style.display = 'block';
+      const accordionCard = resultsAccordion.closest('.accordion-card');
+      if (accordionCard) {
+        accordionCard.classList.add('expanded');
+      }
+    }
+
+    const configAccordion = document.getElementById('config-accordion');
+    const configContent = document.getElementById('config-content');
+    if (configAccordion && configContent && app.results.length > 0) {
+      configAccordion.classList.remove('expanded');
+      configContent.style.display = 'none';
+    }
+
+    const executeBtn = document.getElementById('execute-btn');
+    const exportBtn = document.getElementById('export-btn');
+    const deleteBtn = document.getElementById('delete-html-btn');
+    if (executeBtn) executeBtn.disabled = app.results.length === 0;
+    if (exportBtn) exportBtn.disabled = app.results.length === 0;
+    if (deleteBtn) deleteBtn.disabled = app.results.length === 0;
+
+    showMessage(`Found ${matchesFound} "${scanSelector}" element(s) in ${app.results.length} files`, 'success');
+  } catch (error) {
+    showMessage(`Error: ${error.message}`, 'error');
+    updateProgress(0, '');
   }
 }
 
