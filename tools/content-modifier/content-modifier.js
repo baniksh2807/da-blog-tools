@@ -53,11 +53,11 @@ class ContentModifier {
       this.app.token = token;
       this.app.actions = actions;
       // Set up event listeners
-     // this.setupEventListeners();
+      this.setupEventListeners();
       
       // Initialize UI state
-      //this.updateUI();
-      alert("Content Modifier initialized successfully")
+      this.updateUI();
+      //alert("Content Modifier initialized successfully")
       console.log('Content Modifier initialized successfully');
     } catch (error) {
       console.error('Failed to initialize Content Modifier:', error);
