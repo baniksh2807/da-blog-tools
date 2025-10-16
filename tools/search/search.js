@@ -3192,10 +3192,10 @@ async function init() {
 }
 
 async function startApp() {
-  const hasAccess = await addAppAccessControl();
-  if (hasAccess) {
+  //const hasAccess = await addAppAccessControl();
+  //if (hasAccess) {
     init();
-  }
+  //}
 }
 
 if (document.readyState === 'loading') {
