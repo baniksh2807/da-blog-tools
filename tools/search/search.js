@@ -3914,9 +3914,12 @@ async function scanForElements() {
     const executeBtn = document.getElementById('execute-btn');
     const exportBtn = document.getElementById('export-btn');
     const deleteBtn = document.getElementById('delete-html-btn');
+    const addHtmlBtn = document.getElementById('add-html-btn');
+
     if (executeBtn) executeBtn.disabled = app.results.length === 0;
     if (exportBtn) exportBtn.disabled = app.results.length === 0;
     if (deleteBtn) deleteBtn.disabled = app.results.length === 0;
+    if (addHtmlBtn) addHtmlBtn.disabled = app.results.length === 0;
 
     showMessage(`Found ${matchesFound} "${scanSelector}" element(s) in ${app.results.length} files`, 'success');
   } catch (error) {
