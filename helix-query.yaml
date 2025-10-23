@@ -72,8 +72,9 @@ indices:
     target: /en-us/opensource/blog/query-index.json
     properties:
       path:
-        select: path
-        value: replace(el, '/en-us/opensource', '')
+        select: none
+        value: |
+          replace(path, '/en-us/opensource', '')
       title:
         select: head > meta[property="og:title"]
         value: |
