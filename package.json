@@ -26,5 +26,9 @@
     "eslint-plugin-import": "2.32.0",
     "stylelint": "16.24.0",
     "stylelint-config-standard": "39.0.0"
+  },
+  "dependencies": {
+    "fetch": "^1.1.0",
+    "node-fetch": "^3.3.2"
   }
 }
