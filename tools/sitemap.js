@@ -17,18 +17,12 @@ function normalizePath(p) {
   return p.replace(/^\/en-us\/opensource\/blog/, '/blog');
 }
 
-// Convert UNIX timestamp to YYYY-MM-DD
-function formatLastMod(timestamp) {
-  return timestamp ? new Date(timestamp * 1000).toISOString().split('T')[0] : '';
-}
-
 // Build sitemap XML
 function buildSitemap(entries) {
   const xmlItems = entries
     .map((entry) => {
       const loc = `${SITE_ORIGIN}${normalizePath(entry.path)}`;
-      const lastmod = entry.lastModified ? `\n    <lastmod>${formatLastMod(entry.lastModified)}</lastmod>` : '';
-      return `  <url>\n    <loc>${loc}</loc>${lastmod}\n  </url>`;
+      return `  <url>\n    <loc>${loc}</loc>\n  </url>`;
     })
     .join('\n');
 
