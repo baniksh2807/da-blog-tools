@@ -67,7 +67,7 @@ async function handleItemClick(item) {
     } else if (item.key) {
       await actions.sendText(item.key);
     }
-     if (multiSelectState.enabled) {
+     if (!multiSelectState.enabled) {
       await actions.closeLibrary();
      }
   } catch (error) {
