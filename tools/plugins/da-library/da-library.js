@@ -54,6 +54,10 @@ function renderItems(items, listName, iconType = '', customClickHandler = null) 
       }).join('')}
     </ul>`;
 }
+// Add state management for multi-select
+const multiSelectState = {
+  enabled: false,
+};
 
 async function handleItemClick(item) {
   try {
@@ -63,7 +67,9 @@ async function handleItemClick(item) {
     } else if (item.key) {
       await actions.sendText(item.key);
     }
-    await actions.closeLibrary();
+     if (multiSelectState.enabled) {
+      await actions.closeLibrary();
+     }
   } catch (error) {
     // eslint-disable-next-line no-console
     console.error('Error sending text:', error);
@@ -188,8 +194,11 @@ async function displayListValue() {
   const contentPath = getQueryParam('content');
   const format = getQueryParam('format');
   const typeJson = getQueryParam('type');
+  const multiSelect = getQueryParam('multiSelect');
   const resultDiv = document.getElementById('result');
 
+  multiSelectState.enabled = multiSelect === 'true';
+  
   if (contentPath) {
     try {
       resultDiv.innerHTML = `
