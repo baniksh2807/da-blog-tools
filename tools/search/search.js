@@ -1,23 +1,29 @@
 /* eslint-disable import/no-unresolved, no-restricted-globals, no-use-before-define, no-await-in-loop, no-plusplus, consistent-return, max-len, no-shadow, default-case, no-unused-vars, no-console */
 
-import { DA_ORIGIN } from 'https://da.live/nx/utils/constants.js';
+/**
+ * HTML Operations Tool - Bulk HTML manipulation for DA Platform
+ * Features: Scan, Add, Delete HTML elements across multiple pages
+ */
 
-const DA_SDK = window.hlx.da.sdk;
+import DA_SDK from 'https://da.live/nx/utils/sdk.js';
+import { crawl } from 'https://da.live/nx/public/utils/tree.js';
+import addAppAccessControl from '../access-control/access-control.js';
 
-// API endpoints
-const API = {
-  LIST: `${DA_ORIGIN}/list`,
-  SOURCE: `${DA_ORIGIN}/source`,
+// CONFIGURATION
+const CONFIG = {
+  RESULTS_PER_PAGE: 10,
+  MAX_PAGINATION_BUTTONS: 5,
 };
 
-// App state
 const app = {
   context: null,
   token: null,
-  actions: null,
   results: [],
   selectedFiles: new Set(),
   fileCache: new Map(),
+  availablePaths: [],
+  orgSiteCache: null,
+  searchPaths: [],
   htmlOps: {
     orgSite: null,
     searchPaths: [],
@@ -25,12 +31,24 @@ const app = {
   pagination: {
     currentPage: 1,
     totalPages: 1,
-    resultsPerPage: 10,
     filteredResults: null,
   },
 };
 
-// HTML Operations Path Management Functions
+let isSelectingFromAutocomplete = false;
+let isInteractingWithTree = false;
+
+const API = {
+  LIST: 'https://admin.da.live/list',
+  SOURCE: 'https://admin.da.live/source',
+  VERSION_CREATE: 'https://admin.da.live/versionsource',
+  VERSION_LIST: 'https://admin.da.live/versionlist',
+  PREVIEW: 'https://admin.hlx.page/preview',
+  LIVE: 'https://admin.hlx.page/live',
+};
+
+// ===== HTML OPERATIONS PATH MANAGEMENT =====
+
 function addHtmlOpsSearchPath(path) {
   if (!path || path.trim() === '') return false;
 
@@ -50,7 +68,7 @@ function addHtmlOpsSearchPath(path) {
 function removeHtmlOpsSearchPath(path) {
   const index = app.htmlOps.searchPaths.indexOf(path);
   if (index > -1) {
-    app.htmlOps.searchPaths.splice(index, 1);
+    app.htmlOps.searchPaths.splice(index, -1);
     renderHtmlOpsPathTags();
   }
 }
@@ -69,15 +87,12 @@ function renderHtmlOpsPathTags() {
     tag.innerHTML = `
       <span class="tag-text">${path}</span>
       <button type="button" class="tag-remove" aria-label="Remove path ${path}">
-        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" class="icon">
-          <path d="M18 6L6 18M6 6l12 12"/>
-        </svg>
+        <img src="./search/icons/close.svg" alt="Remove" class="icon icon-sm">
       </button>
     `;
 
     const removeBtn = tag.querySelector('.tag-remove');
-    removeBtn.addEventListener('click', (e) => {
-      e.stopPropagation(); // Prevent event bubbling
+    removeBtn.addEventListener('click', () => {
       removeHtmlOpsSearchPath(path);
     });
 
@@ -114,9 +129,10 @@ function validateHtmlOpsConfig() {
   return true;
 }
 
-// Fetch content from file
-async function fetchContent(filePath) {
-  const cacheKey = filePath;
+// ===== CORE FETCH FUNCTIONS FOR HTML OPS =====
+
+async function fetchContentForHtmlOps(filePath) {
+  const cacheKey = `htmlops_${filePath}`;
   if (app.fileCache.has(cacheKey)) {
     return app.fileCache.get(cacheKey);
   }
@@ -126,7 +142,7 @@ async function fetchContent(filePath) {
   if (!orgSite) return null;
 
   const { org, site } = orgSite;
-  const url = `${API.SOURCE}/${org}/${site}${filePath}.html`;
+  const url = `${API.SOURCE}/${org}/${site}${filePath}`;
 
   try {
     const response = await fetch(url, {
@@ -146,14 +162,13 @@ async function fetchContent(filePath) {
   }
 }
 
-// Save content to file
-async function saveContent(filePath, content) {
+async function saveContentForHtmlOps(filePath, content) {
   const { token } = app;
   const orgSite = parseHtmlOpsOrgSite();
   if (!orgSite) return false;
 
   const { org, site } = orgSite;
-  const url = `${API.SOURCE}/${org}/${site}${filePath}.html`;
+  const url = `${API.SOURCE}/${org}/${site}${filePath}`;
 
   try {
     const formData = new FormData();
@@ -169,7 +184,8 @@ async function saveContent(filePath, content) {
       throw new Error(`HTTP ${response.status}`);
     }
 
-    app.fileCache.set(filePath, content);
+    const cacheKey = `htmlops_${filePath}`;
+    app.fileCache.set(cacheKey, content);
     return true;
   } catch (error) {
     console.error(`Error saving ${filePath}:`, error);
@@ -177,28 +193,37 @@ async function saveContent(filePath, content) {
   }
 }
 
-// Create version backup
-async function createVersion(filePath) {
-  const { actions } = app;
+async function createVersionForHtmlOps(filePath) {
+  const { token } = app;
   const orgSite = parseHtmlOpsOrgSite();
   if (!orgSite) return false;
 
   const { org, site } = orgSite;
+  const cleanPath = `${org}/${site}${filePath}`;
+  const url = `${API.VERSION_CREATE}/${cleanPath}`;
 
   try {
-    await actions.createVersion({
-      org,
-      site,
-      path: filePath,
+    const response = await fetch(url, {
+      method: 'POST',
+      headers: {
+        Authorization: `Bearer ${token}`,
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify({
+        label: 'HTML Operations Backup',
+      }),
     });
-    return true;
+
+    if (response.ok) {
+      return true;
+    }
+    return false;
   } catch (error) {
     console.error(`Error creating version for ${filePath}:`, error);
     return false;
   }
 }
 
-// Fetch files for HTML operations
 async function fetchFilesForHtmlOps(basePath = '') {
   const { token } = app;
   const orgSite = parseHtmlOpsOrgSite();
@@ -274,7 +299,8 @@ async function fetchAllFilesForHtmlOps() {
   return allFiles;
 }
 
-// Search for elements in HTML
+// ===== HTML OPERATIONS: SCAN, ADD, DELETE =====
+
 function searchForElements(htmlContent, selector) {
   const parser = new DOMParser();
   const doc = parser.parseFromString(htmlContent, 'text/html');
@@ -285,8 +311,10 @@ function searchForElements(htmlContent, selector) {
     matches.push({
       index,
       selector,
-      outerHTML: el.outerHTML,
-      textContent: el.textContent.substring(0, 100),
+      match: `Element ${index + 1}: ${selector}`,
+      context: el.textContent.substring(0, 100),
+      line: `Found element: ${selector}`,
+      elementHTML: el.outerHTML.substring(0, 200),
       selected: true,
     });
   });
@@ -297,7 +325,6 @@ function searchForElements(htmlContent, selector) {
   };
 }
 
-// Scan for elements
 async function scanForElements() {
   resetPagination();
 
@@ -338,7 +365,7 @@ async function scanForElements() {
     const processFile = async (file, index) => {
       updateProgress(20 + (index / files.length) * 70, `Scanning ${file.name}...`);
 
-      const content = await fetchContent(file.path);
+      const content = await fetchContentForHtmlOps(file.path);
       if (!content) return null;
 
       const result = searchForElements(content, scanSelector);
@@ -400,7 +427,6 @@ async function scanForElements() {
   }
 }
 
-// Add HTML node
 async function addHtmlNode() {
   const selected = app.results.filter((r) => r.selected);
 
@@ -446,7 +472,7 @@ async function addHtmlNode() {
       const fileName = result.file.path.split('/').pop();
 
       updateProgress((index / selected.length) * 50, `Creating backup for ${fileName}...`);
-      const versionResult = await createVersion(result.file.path);
+      const versionResult = await createVersionForHtmlOps(result.file.path);
 
       if (!versionResult) {
         updateProgress(((index + 1) / selected.length) * 100, `Skipped ${fileName} - backup failed`);
@@ -498,7 +524,7 @@ async function addHtmlNode() {
         }
 
         const updatedContent = doc.documentElement.outerHTML;
-        const success = await saveContent(result.file.path, updatedContent);
+        const success = await saveContentForHtmlOps(result.file.path, updatedContent);
         
         return { success, versionCreated: true, skipped: false };
       } catch (error) {
@@ -528,7 +554,6 @@ async function addHtmlNode() {
   }
 }
 
-// Delete HTML node
 async function deleteHtmlNode() {
   const selected = app.results.filter((r) => r.selected);
 
@@ -556,7 +581,7 @@ async function deleteHtmlNode() {
       const fileName = result.file.path.split('/').pop();
 
       updateProgress((index / selected.length) * 50, `Creating backup for ${fileName}...`);
-      const versionResult = await createVersion(result.file.path);
+      const versionResult = await createVersionForHtmlOps(result.file.path);
 
       if (!versionResult) {
         updateProgress(((index + 1) / selected.length) * 100, `Skipped ${fileName} - backup failed`);
@@ -581,7 +606,7 @@ async function deleteHtmlNode() {
         });
 
         const updatedContent = doc.documentElement.outerHTML;
-        const success = await saveContent(result.file.path, updatedContent);
+        const success = await saveContentForHtmlOps(result.file.path, updatedContent);
         
         return { success, versionCreated: true, skipped: false, deletedCount };
       } catch (error) {
@@ -613,7 +638,52 @@ async function deleteHtmlNode() {
   }
 }
 
-// Display results
+// ===== UI HELPER FUNCTIONS =====
+
+function showMessage(text, type = 'info') {
+  const toast = document.getElementById('toast');
+  const message = document.querySelector('.toast-message');
+  const iconImg = document.querySelector('.toast-icon img');
+
+  if (!toast || !message || !iconImg) return;
+
+  message.textContent = text;
+
+  const iconPaths = {
+    success: './search/icons/check.svg',
+    error: './search/icons/close.svg',
+    warning: './search/icons/close.svg',
+    info: './search/icons/check.svg',
+  };
+
+  iconImg.src = iconPaths[type] || iconPaths.info;
+  iconImg.alt = type.charAt(0).toUpperCase() + type.slice(1);
+
+  toast.className = `toast ${type}`;
+  toast.classList.remove('hidden');
+
+  setTimeout(() => {
+    toast.classList.add('hidden');
+  }, 5000);
+}
+
+function updateProgress(percent, text) {
+  const container = document.querySelector('.progress-container');
+  const fill = document.querySelector('.progress-fill');
+  const textEl = document.querySelector('.progress-text');
+
+  if (!container) return;
+
+  if (percent === 0) {
+    container.style.display = 'none';
+    return;
+  }
+
+  container.style.display = 'block';
+  if (fill) fill.style.width = `${percent}%`;
+  if (textEl) textEl.textContent = text;
+}
+
 function displayResults() {
   const listContainer = document.getElementById('results-list');
   if (!listContainer) return;
@@ -626,8 +696,8 @@ function displayResults() {
   }
 
   const { currentPage, resultsPerPage } = app.pagination;
-  const startIndex = (currentPage - 1) * resultsPerPage;
-  const endIndex = Math.min(startIndex + resultsPerPage, filteredResults.length);
+  const startIndex = (currentPage - 1) * CONFIG.RESULTS_PER_PAGE;
+  const endIndex = Math.min(startIndex + CONFIG.RESULTS_PER_PAGE, filteredResults.length);
   const pageResults = filteredResults.slice(startIndex, endIndex);
 
   listContainer.innerHTML = '';
@@ -641,12 +711,22 @@ function displayResults() {
   updatePaginationControls();
 }
 
+function escapeHtml(text) {
+  const div = document.createElement('div');
+  div.textContent = text;
+  return div.innerHTML;
+}
+
 function createResultItem(result, index) {
   const div = document.createElement('div');
   div.className = `result-item ${result.selected ? 'selected' : ''}`;
   div.setAttribute('data-index', index);
 
-  const filePath = result.file.path.replace(`/${result.file.org}/${result.file.repo}`, '');
+  const orgSite = parseHtmlOpsOrgSite();
+  let filePath = result.file.path;
+  if (orgSite) {
+    filePath = filePath.replace(`/${orgSite.org}/${orgSite.site}`, '');
+  }
 
   div.innerHTML = `
     <div class="result-header">
@@ -673,7 +753,7 @@ function createResultItem(result, index) {
             <span class="match-selector">${match.selector}</span>
           </div>
           <div class="match-preview">
-            <code>${escapeHtml(match.outerHTML.substring(0, 200))}${match.outerHTML.length > 200 ? '...' : ''}</code>
+            <code>${escapeHtml(match.context || match.elementHTML || '')}</code>
           </div>
         </div>
       `).join('')}
@@ -682,7 +762,7 @@ function createResultItem(result, index) {
 
   const checkbox = div.querySelector(`input[data-file-index="${index}"]`);
   checkbox.addEventListener('change', (e) => {
-    e.stopPropagation(); // Prevent triggering accordion
+    e.stopPropagation();
     result.selected = e.target.checked;
     if (e.target.checked) {
       app.selectedFiles.add(index);
@@ -697,7 +777,7 @@ function createResultItem(result, index) {
   const matchesContainer = div.querySelector('.result-matches');
   
   expandBtn.addEventListener('click', (e) => {
-    e.stopPropagation(); // Prevent triggering parent events
+    e.stopPropagation();
     const isExpanded = matchesContainer.style.display !== 'none';
     matchesContainer.style.display = isExpanded ? 'none' : 'block';
     expandBtn.classList.toggle('expanded', !isExpanded);
@@ -706,13 +786,6 @@ function createResultItem(result, index) {
   return div;
 }
 
-function escapeHtml(text) {
-  const div = document.createElement('div');
-  div.textContent = text;
-  return div.innerHTML;
-}
-
-// Pagination functions
 function resetPagination() {
   app.pagination.currentPage = 1;
   app.pagination.filteredResults = null;
@@ -722,18 +795,18 @@ function updatePaginationControls() {
   const paginationContainer = document.getElementById('pagination-container');
   const filteredResults = app.pagination.filteredResults || app.results;
   
-  if (filteredResults.length <= app.pagination.resultsPerPage) {
+  if (filteredResults.length <= CONFIG.RESULTS_PER_PAGE) {
     paginationContainer.style.display = 'none';
     return;
   }
 
   paginationContainer.style.display = 'flex';
 
-  const totalPages = Math.ceil(filteredResults.length / app.pagination.resultsPerPage);
+  const totalPages = Math.ceil(filteredResults.length / CONFIG.RESULTS_PER_PAGE);
   app.pagination.totalPages = totalPages;
 
-  const startIndex = (app.pagination.currentPage - 1) * app.pagination.resultsPerPage + 1;
-  const endIndex = Math.min(app.pagination.currentPage * app.pagination.resultsPerPage, filteredResults.length);
+  const startIndex = (app.pagination.currentPage - 1) * CONFIG.RESULTS_PER_PAGE + 1;
+  const endIndex = Math.min(app.pagination.currentPage * CONFIG.RESULTS_PER_PAGE, filteredResults.length);
 
   document.getElementById('pagination-info-text').textContent = 
     `Showing ${startIndex}-${endIndex} of ${filteredResults.length} results`;
@@ -769,62 +842,41 @@ function renderPageNumbers() {
   }
 }
 
-// Progress and message functions
-function updateProgress(percent, message) {
-  const container = document.querySelector('.progress-container');
-  const fill = document.querySelector('.progress-fill');
-  const text = document.querySelector('.progress-text');
+function toggleAccordion(contentId) {
+  const content = document.getElementById(contentId);
+  const card = content.closest('.accordion-card');
 
-  if (percent > 0) {
-    container.style.display = 'block';
-    fill.style.width = `${percent}%`;
-    text.textContent = message;
-  } else {
-    container.style.display = 'none';
+  if (content && card) {
+    const isExpanded = card.classList.contains('expanded');
+    const accordionIcon = card.querySelector('.accordion-icon');
+
+    if (isExpanded) {
+      card.classList.remove('expanded');
+      content.style.display = 'none';
+      if (accordionIcon) {
+        accordionIcon.src = './search/icons/chevron-down.svg';
+      }
+    } else {
+      card.classList.add('expanded');
+      content.style.display = 'block';
+      if (accordionIcon) {
+        accordionIcon.src = './search/icons/chevron-up.svg';
+      }
+    }
   }
 }
 
-function showMessage(message, type = 'info') {
-  const toast = document.getElementById('toast');
-  const messageEl = toast.querySelector('.toast-message');
-  const iconEl = toast.querySelector('.toast-icon img');
+// ===== EVENT LISTENERS SETUP =====
 
-  messageEl.textContent = message;
-  
-  toast.className = 'toast';
-  toast.classList.add(type);
-  toast.classList.remove('hidden');
-
-  const icons = {
-    success: './search/icons/check.svg',
-    error: './search/icons/error.svg',
-    warning: './search/icons/warning.svg',
-    info: './search/icons/info.svg',
-  };
-
-  iconEl.src = icons[type] || icons.info;
-
-  setTimeout(() => {
-    toast.classList.add('hidden');
-  }, 5000);
-}
-
-// Setup event listeners
 function setupEventListeners() {
-  // Main operation buttons
+  // HTML Operations buttons
   const scanElementsBtn = document.getElementById('scan-elements-btn');
   const addHtmlBtn = document.getElementById('add-html-btn');
   const deleteHtmlBtn = document.getElementById('delete-html-btn');
   
-  if (scanElementsBtn) {
-    scanElementsBtn.addEventListener('click', scanForElements);
-  }
-  if (addHtmlBtn) {
-    addHtmlBtn.addEventListener('click', addHtmlNode);
-  }
-  if (deleteHtmlBtn) {
-    deleteHtmlBtn.addEventListener('click', deleteHtmlNode);
-  }
+  if (scanElementsBtn) scanElementsBtn.addEventListener('click', scanForElements);
+  if (addHtmlBtn) addHtmlBtn.addEventListener('click', addHtmlNode);
+  if (deleteHtmlBtn) deleteHtmlBtn.addEventListener('click', deleteHtmlNode);
 
   // Results control buttons
   const toggleAll = document.getElementById('toggle-all');
@@ -893,7 +945,7 @@ function setupEventListeners() {
     });
   }
 
-  // HTML Operations org/site input validation
+  // HTML Operations org/site input
   const htmlOpsOrgSiteInput = document.getElementById('html-ops-org-site');
   if (htmlOpsOrgSiteInput) {
     htmlOpsOrgSiteInput.addEventListener('input', () => {
@@ -974,36 +1026,21 @@ function setupEventListeners() {
     });
   }
 
-  // Accordion functionality - FIXED
-  document.querySelectorAll('.accordion-header').forEach(header => {
+  // Accordion functionality
+  document.querySelectorAll('.accordion-header[data-accordion-target]').forEach(header => {
     header.addEventListener('click', (e) => {
-      // Ignore clicks on form elements inside the accordion header
       if (e.target.closest('input, button, select, textarea, .form-control')) {
         return;
       }
 
       const target = header.getAttribute('data-accordion-target');
-      const content = document.getElementById(target);
-      const card = header.closest('.accordion-card');
-
-      if (content && card) {
-        const isCurrentlyExpanded = content.style.display !== 'none';
-        
-        if (isCurrentlyExpanded) {
-          // Collapse
-          content.style.display = 'none';
-          card.classList.remove('expanded');
-        } else {
-          // Expand
-          content.style.display = 'block';
-          card.classList.add('expanded');
-        }
-      }
+      toggleAccordion(target);
     });
   });
 }
 
-// Initialize app
+// ===== INITIALIZATION =====
+
 async function init() {
   try {
     const { context, token, actions } = await DA_SDK;
@@ -1021,9 +1058,15 @@ async function init() {
   }
 }
 
-// Wait for DOM to be ready
+async function startApp() {
+  //const hasAccess = await addAppAccessControl();
+  //if (hasAccess) {
+    init();
+  //}
+}
+
 if (document.readyState === 'loading') {
-  document.addEventListener('DOMContentLoaded', init);
+  document.addEventListener('DOMContentLoaded', startApp);
 } else {
-  init();
+  startApp();
 }
