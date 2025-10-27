@@ -19,8 +19,8 @@
               <img src="./search/icons/search.svg" alt="Search" class="icon">
             </div>
             <div class="header-text">
-              <h1>FindReplace Pro</h1>
-              <p class="subtitle">Bulk find & replace with publishing workflow</p>
+              <h1>Bulk Updates</h1>
+              <p class="subtitle">Bulk Document Authoring Update</p>
             </div>
           </div>
           <div class="header-actions">
@@ -88,66 +88,6 @@
                   </label>
                 </div>
               </div>
-
-              <!-- Search & Replace Row -->
-              <div class="input-row search-replace-row">
-                <div class="input-group">
-                  <label for="search-term" class="input-label">
-                    <span class="label-text">Search For</span>
-                    <span class="label-hint">Text or pattern to find</span>
-                  </label>
-                  <textarea id="search-term" class="textarea-field" placeholder="Enter search term or regex pattern" rows="3"></textarea>
-                  <div class="input-row">
-                    <div class="input-group">
-                      <select id="search-type" class="select-field">
-                        <option value="contains">Contains (default)</option>
-                        <option value="exact">Exact Match</option>
-                        <option value="regex">Regular Expression</option>
-                      </select>
-                    </div>
-                    
-                    <div class="checkbox-group">
-                      <div class="checkbox-option">
-                        <label class="checkbox-item">
-                          <input type="checkbox" id="case-sensitive">
-                          <span class="checkbox-label">Case Sensitive</span>
-                        </label>
-                      </div>
-                      
-                      <div class="checkbox-option">
-                        <label class="checkbox-item">
-                          <input type="checkbox" id="html-mode">
-                          <span class="checkbox-label">HTML Mode</span>
-                        </label>
-                      </div>
-                    </div>
-                  </div>
-                  <div id="search-term-help" class="input-help" style="display: none;">
-                    <strong>Optional:</strong> Enter text to find within elements, or leave empty to find all pages containing the selected elements
-                  </div>
-                  <div id="html-mode-help" class="input-help" style="display: none;">
-                    <strong>HTML Mode:</strong> Search and replace entire HTML blocks with normalized formatting.
-                    <br><strong>Examples:</strong>
-                    <br>• Find: <code>&lt;div class="hero"&gt;&lt;/div&gt;</code>
-                    <br>• Replace: <code>&lt;div class="banner"&gt;&lt;/div&gt;</code>
-                    <br>• Remove blocks by leaving replacement empty
-                  </div>
-                </div>
-
-                <div class="input-group">
-                  <label for="replace-term" class="input-label">
-                    <span class="label-text">Replace With</span>
-                    <span class="label-hint">Replacement text (optional for search-only)</span>
-                  </label>
-                  <textarea id="replace-term" class="textarea-field" placeholder="Enter replacement text or regex pattern" rows="3"></textarea>
-                  <div class="checkbox-option">
-                    <label class="checkbox-item">
-                      <input type="checkbox" id="replace-empty">
-                      <span class="checkbox-label">Replace with empty (remove text)</span>
-                    </label>
-                  </div>
-                </div>
-              </div>
             </div>
           </div>
           </div>
@@ -173,169 +113,196 @@
               </div>
             </div>
           </div>
-          
-          <!-- Advanced Filters Accordion -->
-          <div class="config-card accordion-card">
-            <div class="card-header accordion-header" data-accordion-target="file-filters">
-              <div class="card-icon">
-                <img src="./search/icons/filter.svg" alt="Advanced Filters" class="icon">
-              </div>
-              <div class="header-text">
-                <h2>Advanced Filters</h2>
-              </div>
-              <div class="accordion-toggle">
-                <img src="./search/icons/chevron-down.svg" alt="Toggle" class="icon accordion-icon">
-              </div>
-            </div>
-            
-            <div class="card-content accordion-content" id="file-filters" style="display: none;">
-              <div class="input-group">
-                <label for="target-type" class="input-label">
-                  <span class="label-text">Target Content</span>
-                </label>
-                <select id="target-type" class="select-field">
-                  <option value="all">All Content</option>
-                  <option value="page-metadata">Page Metadata Only</option>
-                  <option value="section-metadata">Section Metadata Only</option>
-                  <option value="blocks">Block Content Only</option>
-                  <option value="main-content">Main Content Only</option>
-                  <option value="custom">Custom Selector</option>
-                </select>
-              </div>
-
-              <div class="input-group custom-selector" style="display: none;">
-                <label for="custom-selector" class="input-label">
-                  <span class="label-text">CSS Selector</span>
-                  <span class="label-hint">Target specific elements</span>
-                </label>
-                <input type="text" id="custom-selector" class="input-field" placeholder=".hero, .cards h3">
-                <div class="input-help">
-                  <strong>Examples:</strong> 
-                  <code>.hero</code> (hero blocks), 
-                  <code>.cards h3</code> (card titles), 
-                  <code>main p</code> (paragraphs)
-                </div>
-              </div>
-
-              <div class="input-group">
-                <label for="exclude-paths" class="input-label">
-                  <span class="label-text">Exclude Paths</span>
-                </label>
-                <input type="text" id="exclude-paths" class="input-field" placeholder="/drafts, /archive">
-              </div>
-
-              <div class="input-group">
-                <div class="checkbox-option">
-                  <label class="checkbox-item">
-                    <input type="checkbox" id="exclude-urls">
-                    <span class="checkbox-label">Exclude URLs from search</span>
-                  </label>
-                </div>
-              </div>
-              <div class="input-group">
-                <label for="modified-since" class="input-label">
-                  <span class="label-text">Modified Since</span>
-                </label>
-                <input type="date" id="modified-since" class="input-field">
-              </div>
-            </div>
-          </div>
           </div>
             </div>
           </div>
         </div>
-        <div class="accordion-card">
+
+        <!-- HTML Operations Accordion -->
+        <div class="accordion-card" id="html-operations-accordion">
           <div class="accordion-header" data-accordion-target="html-operations">
-            <h3>HTML Operations</h3>
-            <img src="./search/icons/chevron-down.svg" alt="Toggle" class="accordion-icon">
+            <div class="accordion-header-content">
+              <div class="card-icon">
+                <img src="./search/icons/code.svg" alt="HTML Operations" class="icon">
+              </div>
+              <h2>HTML Operations</h2>
+            </div>
+            <div class="accordion-toggle">
+              <img src="./search/icons/chevron-down.svg" alt="Toggle" class="icon accordion-icon">
+            </div>
           </div>
+          
           <div id="html-operations" class="accordion-content">
-            
-            <!-- Add HTML Node Section -->
-            <div class="form-section">
-              <h4>Add HTML Node</h4>
-              <p class="help-text">Add HTML content to pages at a specified location</p>
-              
-              <div class="form-group">
-                <label for="html-content">HTML Content to Add:</label>
-                <textarea 
-                  id="html-content" 
-                  rows="8" 
-                  placeholder="Enter HTML to add (e.g., <div class='header-article-pro'>...</div>)"
-                ></textarea>
-              </div>
+            <div class="config-container">
+              <div class="main-config-section">
+                
+                <!-- HTML Operations Configuration Card -->
+                <div class="config-card">
+                  <div class="card-header">
+                    <div class="card-icon">
+                      <img src="./search/icons/settings.svg" alt="Configuration" class="icon">
+                    </div>
+                    <h2>HTML Operations Configuration</h2>
+                  </div>
+                  
+                  <div class="card-content">
+                    <!-- Organization/Site -->
+                    <div class="input-group">
+                      <label for="html-ops-org-site" class="input-label">
+                        <span class="label-text">Organization/Site</span>
+                      </label>
+                      <input type="text" id="html-ops-org-site" class="input-field" placeholder="/org/mysite">
+                    </div>
 
-              <div class="form-group">
-                <label for="insert-position">Insert Position:</label>
-                <select id="insert-position">
-                  <option value="append">Append (at end of target)</option>
-                  <option value="prepend">Prepend (at beginning of target)</option>
-                  <option value="before">Before (before target element)</option>
-                  <option value="after">After (after target element)</option>
-                </select>
-              </div>
+                    <!-- Search Paths -->
+                    <div class="input-group">
+                      <label for="html-ops-search-path-input" class="input-label">
+                        <span class="label-text">Search Paths (Optional)</span>
+                      </label>
+                      <div class="multi-path-container">
+                        <input type="text" id="html-ops-search-path-input" class="input-field path-input" placeholder="Press Enter to add path (e.g., /blog, /articles)">
+                        <div class="path-tags" id="html-ops-path-tags">
+                          <!-- Path tags will be added here -->
+                        </div>
+                      </div>
+                      <small class="help-text">Leave empty to search entire site. Add specific paths to limit scope.</small>
+                    </div>
 
-              <div class="form-group">
-                <label for="target-selector">Target Selector (optional):</label>
-                <input 
-                  type="text" 
-                  id="target-selector" 
-                  placeholder="CSS selector (e.g., main, .content) - leave empty for main/body"
-                >
-                <small class="help-text">Leave empty to target main content area</small>
-              </div>
+                    <!-- Include Subfolders -->
+                    <div class="checkbox-option">
+                      <label class="checkbox-item">
+                        <input type="checkbox" id="html-ops-include-subfolders">
+                        <span class="checkbox-label">Include Subfolders</span>
+                      </label>
+                    </div>
+                  </div>
+                </div>
 
-              <button id="add-html-btn" class="btn btn-primary" disabled>
-                <span>Add HTML to Selected Files</span>
-              </button>
+                <!-- Scan for Elements Section -->
+                <div class="config-card">
+                  <div class="card-header">
+                    <div class="card-icon">
+                      <img src="./search/icons/search.svg" alt="Scan" class="icon">
+                    </div>
+                    <h2>Scan for Elements</h2>
+                  </div>
+                  
+                  <div class="card-content">
+                    <p class="help-text">Find all pages containing elements matching a CSS selector</p>
+                    
+                    <div class="input-group">
+                      <label for="scan-selector" class="input-label">
+                        <span class="label-text">CSS Selector to Find</span>
+                      </label>
+                      <input 
+                        type="text" 
+                        id="scan-selector" 
+                        class="input-field"
+                        placeholder="Enter CSS selector (e.g., .header-article-pro)"
+                      >
+                      <small class="help-text">Scan will show all pages containing these elements</small>
+                    </div>
+
+                    <button id="scan-elements-btn" class="btn btn-primary">
+                      <img src="./search/icons/search.svg" alt="Scan" class="icon">
+                      <span>Scan for Elements</span>
+                    </button>
+                  </div>
+                </div>
+                
+                <!-- Add HTML Node Section -->
+                <div class="config-card">
+                  <div class="card-header">
+                    <div class="card-icon">
+                      <img src="./search/icons/plus.svg" alt="Add" class="icon">
+                    </div>
+                    <h2>Add HTML Node</h2>
+                  </div>
+                  
+                  <div class="card-content">
+                    <p class="help-text">Add HTML content to pages at a specified location</p>
+                    
+                    <div class="input-group">
+                      <label for="html-content" class="input-label">
+                        <span class="label-text">HTML Content to Add</span>
+                      </label>
+                      <textarea 
+                        id="html-content" 
+                        rows="8"
+                        class="input-field"
+                        placeholder="Enter HTML to add (e.g., <div class='header-article-pro'>...</div>)"
+                      ></textarea>
+                    </div>
+
+                    <div class="input-group">
+                      <label for="insert-position" class="input-label">
+                        <span class="label-text">Insert Position</span>
+                      </label>
+                      <select id="insert-position" class="input-field">
+                        <option value="append">Append (at end of target)</option>
+                        <option value="prepend">Prepend (at beginning of target)</option>
+                        <option value="before">Before (before target element)</option>
+                        <option value="after">After (after target element)</option>
+                      </select>
+                    </div>
+
+                    <div class="input-group">
+                      <label for="target-selector" class="input-label">
+                        <span class="label-text">Target Selector (optional)</span>
+                      </label>
+                      <input 
+                        type="text" 
+                        id="target-selector"
+                        class="input-field"
+                        placeholder="CSS selector (e.g., main, .content) - leave empty for main/body"
+                      >
+                      <small class="help-text">Leave empty to target main content area</small>
+                    </div>
+
+                    <button id="add-html-btn" class="btn btn-primary" disabled>
+                      <img src="./search/icons/plus.svg" alt="Add" class="icon">
+                      <span>Add HTML to Selected Files</span>
+                    </button>
+                  </div>
+                </div>
+
+                <!-- Delete HTML Node Section -->
+                <div class="config-card">
+                  <div class="card-header">
+                    <div class="card-icon">
+                      <img src="./search/icons/trash.svg" alt="Delete" class="icon">
+                    </div>
+                    <h2>Delete HTML Node</h2>
+                  </div>
+                  
+                  <div class="card-content">
+                    <p class="help-text">Remove HTML elements matching a CSS selector</p>
+                    
+                    <div class="input-group">
+                      <label for="delete-selector" class="input-label">
+                        <span class="label-text">CSS Selector to Delete</span>
+                      </label>
+                      <input 
+                        type="text" 
+                        id="delete-selector"
+                        class="input-field"
+                        placeholder="Enter CSS selector (e.g., .header-article-pro, #hero)"
+                      >
+                      <small class="help-text">All matching elements will be removed from selected files</small>
+                    </div>
+
+                    <button id="delete-html-btn" class="btn btn-danger" disabled>
+                      <img src="./search/icons/trash.svg" alt="Delete" class="icon">
+                      <span>Delete Elements from Selected Files</span>
+                    </button>
+                  </div>
+                </div>
+
+              </div>
             </div>
-
-            <hr style="margin: 30px 0; border: none; border-top: 1px solid #e0e0e0;">
-
-            <!-- Delete HTML Node Section -->
-            <div class="form-section">
-              <h4>Delete HTML Node</h4>
-              <p class="help-text">Remove HTML elements matching a CSS selector</p>
-              
-              <div class="form-group">
-                <label for="delete-selector">CSS Selector to Delete:</label>
-                <input 
-                  type="text" 
-                  id="delete-selector" 
-                  placeholder="Enter CSS selector (e.g., .header-article-pro, #hero)"
-                >
-                <small class="help-text">All matching elements will be removed from selected files</small>
-              </div>
-
-              <button id="delete-html-btn" class="btn btn-danger" disabled>
-                <span>Delete Elements from Selected Files</span>
-              </button>
-            </div>
-
-            <hr style="margin: 30px 0; border: none; border-top: 1px solid #e0e0e0;">
-
-            <!-- Scan for Elements Section -->
-            <div class="form-section">
-              <h4>Scan for Elements</h4>
-              <p class="help-text">Find all pages containing elements matching a CSS selector</p>
-              
-              <div class="form-group">
-                <label for="scan-selector">CSS Selector to Find:</label>
-                <input 
-                  type="text" 
-                  id="scan-selector" 
-                  placeholder="Enter CSS selector (e.g., .header-article-pro)"
-                >
-                <small class="help-text">Scan will show all pages containing these elements</small>
-              </div>
-
-              <button id="scan-elements-btn" class="btn btn-secondary">
-                <span>Scan for Elements</span>
-              </button>
-            </div>
-
           </div>
         </div>
+
         <!-- Action Bar -->
         <div class="action-bar">
           <div class="primary-actions">

@@ -896,6 +896,208 @@ input, textarea, select {
   min-width: 0; /* Prevent grid items from overflowing */
 }
 
+.accordion-card {
+  background: var(--color-background);
+  border: 1px solid var(--color-border);
+  border-radius: var(--border-radius-xl);
+  box-shadow: var(--shadow-sm);
+  margin-bottom: var(--spacing-lg);
+  overflow: hidden;
+  transition: var(--transition-normal);
+}
+
+.accordion-card:hover {
+  box-shadow: var(--shadow-md);
+}
+
+/* Unified accordion header styling */
+.accordion-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: var(--spacing-lg);
+  background: var(--color-gray-50);
+  border-bottom: 1px solid var(--color-border);
+  cursor: pointer;
+  transition: var(--transition-fast);
+  user-select: none;
+}
+
+.accordion-header:hover {
+  background: var(--color-gray-100);
+}
+
+/* Accordion header content wrapper (icon + title) */
+.accordion-header-content {
+  display: flex;
+  align-items: center;
+  gap: var(--spacing-md);
+  flex: 1;
+}
+
+/* Card icon in accordion header */
+.accordion-header .card-icon {
+  width: 32px;
+  height: 32px;
+  background: var(--color-background);
+  border-radius: var(--border-radius-lg);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+}
+
+.accordion-header .card-icon .icon {
+  width: 18px;
+  height: 18px;
+  filter: var(--icon-filter-light);
+}
+
+/* Accordion header titles */
+.accordion-header h2,
+.accordion-header h3 {
+  margin: 0;
+  font-size: var(--font-size-lg);
+  font-weight: 600;
+  color: var(--color-text-primary);
+}
+
+/* Accordion toggle area (chevron) */
+.accordion-toggle {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  margin-left: auto;
+  flex-shrink: 0;
+}
+
+/* Accordion icon (chevron) */
+.accordion-icon {
+  width: 20px;
+  height: 20px;
+  transition: transform var(--transition-fast);
+  filter: var(--icon-filter-light);
+}
+
+/* Rotate chevron when expanded */
+.accordion-card.expanded .accordion-icon {
+  transform: rotate(180deg);
+}
+
+/* Accordion content area */
+.accordion-content {
+  display: none;
+  background: var(--color-background);
+}
+
+.accordion-card.expanded .accordion-content {
+  display: block;
+}
+
+/* ===== HTML OPERATIONS SPECIFIC STYLES ===== */
+
+/* HTML Operations accordion content padding */
+#html-operations {
+  padding: var(--spacing-xl);
+}
+
+/* HTML Operations uses config cards inside */
+#html-operations .config-card {
+  margin-bottom: var(--spacing-lg);
+  border-radius: var(--border-radius-lg);
+}
+
+#html-operations .config-card:last-child {
+  margin-bottom: 0;
+}
+
+/* HTML Operations card headers */
+#html-operations .card-header {
+  padding: var(--spacing-md) var(--spacing-lg);
+  background: var(--color-gray-50);
+}
+
+#html-operations .card-header .card-icon {
+  width: 28px;
+  height: 28px;
+}
+
+#html-operations .card-header .card-icon .icon {
+  width: 16px;
+  height: 16px;
+}
+
+#html-operations .card-header h2 {
+  font-size: var(--font-size-base);
+  font-weight: 600;
+}
+
+/* HTML Operations card content */
+#html-operations .card-content {
+  padding: var(--spacing-lg);
+}
+
+/* HTML Operations form groups */
+#html-operations .input-group {
+  margin-bottom: var(--spacing-lg);
+}
+
+#html-operations .input-group:last-child {
+  margin-bottom: 0;
+}
+
+/* HTML Operations input labels */
+#html-operations .input-label {
+  margin-bottom: var(--spacing-sm);
+}
+
+#html-operations .label-text {
+  font-size: var(--font-size-sm);
+  font-weight: 500;
+  color: var(--color-text-primary);
+}
+
+/* HTML Operations help text */
+#html-operations .help-text {
+  display: block;
+  font-size: var(--font-size-sm);
+  color: var(--color-text-secondary);
+  margin-top: var(--spacing-xs);
+  line-height: 1.4;
+}
+
+#html-operations .card-content > .help-text {
+  margin-bottom: var(--spacing-lg);
+}
+
+/* HTML Operations textareas */
+#html-operations textarea.input-field {
+  font-family: 'Monaco', 'Menlo', 'Courier New', monospace;
+  font-size: var(--font-size-sm);
+  line-height: 1.6;
+  resize: vertical;
+  min-height: 120px;
+}
+
+/* HTML Operations selects */
+#html-operations select.input-field {
+  cursor: pointer;
+}
+
+/* HTML Operations buttons */
+#html-operations .btn {
+  margin-top: var(--spacing-md);
+  min-width: 200px;
+  justify-content: center;
+}
+
+/* HTML Operations separator lines */
+#html-operations hr {
+  margin: var(--spacing-xl) 0;
+  border: none;
+  border-top: 1px solid var(--color-border);
+}
+
 .search-replace-row.input-row .textarea-field {
   max-width: 100%;
 }
@@ -2265,4 +2467,85 @@ input, textarea, select {
 .form-section .btn img.icon {
   width: 16px;
   height: 16px;
+}
+
+/* ===== DARK MODE SUPPORT ===== */
+
+@media (prefers-color-scheme: dark) {
+  .accordion-header {
+    background: var(--color-gray-900);
+    border-bottom-color: var(--color-gray-700);
+  }
+  
+  .accordion-header:hover {
+    background: var(--color-gray-800);
+  }
+  
+  .accordion-header .card-icon {
+    background: var(--color-gray-800);
+  }
+  
+  .accordion-header .card-icon .icon,
+  .accordion-icon {
+    filter: var(--icon-filter-dark);
+  }
+  
+  #html-operations .card-header {
+    background: var(--color-gray-900);
+  }
+  
+  #html-operations .card-header .card-icon {
+    background: var(--color-gray-800);
+  }
+}
+
+/* ===== RESPONSIVE ADJUSTMENTS ===== */
+
+@media (width <= 768px) {
+  .accordion-header {
+    padding: var(--spacing-md);
+  }
+  
+  .accordion-header-content {
+    gap: var(--spacing-sm);
+  }
+  
+  .accordion-header .card-icon {
+    width: 28px;
+    height: 28px;
+  }
+  
+  .accordion-header .card-icon .icon {
+    width: 16px;
+    height: 16px;
+  }
+  
+  .accordion-header h2,
+  .accordion-header h3 {
+    font-size: var(--font-size-base);
+  }
+  
+  #html-operations {
+    padding: var(--spacing-lg);
+  }
+  
+  #html-operations .btn {
+    width: 100%;
+    min-width: 0;
+  }
+}
+
+@media (width <= 480px) {
+  .accordion-header {
+    padding: var(--spacing-sm) var(--spacing-md);
+  }
+  
+  .accordion-header h2,
+  .accordion-header h3 {
+    font-size: var(--font-size-sm);
+  }
+  
+  #html-operations {
+    padding: var(--spacing-md);
+  }
 }
