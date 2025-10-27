@@ -1,0 +1,363 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>RSS Feed Generator</title>
+  <style>
+    body {
+      font-family: system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+      max-width: 1200px;
+      margin: 40px auto;
+      padding: 0 20px;
+      background: #f8f9fa;
+    }
+    h1 {
+      color: #1a1a1a;
+      margin-bottom: 10px;
+    }
+    .subtitle {
+      color: #666;
+      margin-bottom: 30px;
+    }
+    .controls {
+      background: white;
+      padding: 24px;
+      border-radius: 8px;
+      margin-bottom: 24px;
+      box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+    }
+    .controls h3 {
+      margin-top: 0;
+      color: #1a1a1a;
+    }
+    .form-group {
+      margin-bottom: 16px;
+    }
+    .form-group label {
+      display: block;
+      margin-bottom: 6px;
+      font-weight: 500;
+      color: #333;
+      font-size: 14px;
+    }
+    .controls input {
+      padding: 10px 12px;
+      width: 100%;
+      border: 1px solid #ddd;
+      border-radius: 6px;
+      font-size: 14px;
+      box-sizing: border-box;
+      transition: border-color 0.2s;
+    }
+    .controls input:focus {
+      outline: none;
+      border-color: #0066cc;
+      box-shadow: 0 0 0 3px rgba(0, 102, 204, 0.1);
+    }
+    .controls button {
+      background: #0066cc;
+      color: white;
+      border: none;
+      padding: 12px 24px;
+      border-radius: 6px;
+      cursor: pointer;
+      font-size: 14px;
+      font-weight: 500;
+      margin-top: 8px;
+      transition: background-color 0.2s;
+    }
+    .controls button:hover {
+      background: #0052a3;
+    }
+    .controls button:active {
+      background: #004080;
+    }
+    #output {
+      background: white;
+      border-radius: 8px;
+      box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+    }
+    pre {
+      background: #f5f5f5;
+      padding: 20px;
+      overflow-x: auto;
+      border-radius: 8px;
+      white-space: pre-wrap;
+      word-break: break-all;
+      margin: 0;
+      font-family: 'Monaco', 'Menlo', 'Courier New', monospace;
+      font-size: 13px;
+      line-height: 1.5;
+    }
+    .result-header {
+      padding: 20px;
+      border-bottom: 1px solid #e0e0e0;
+    }
+    .result-content {
+      padding: 20px;
+    }
+    .download-link {
+      display: inline-block;
+      margin-bottom: 16px;
+      padding: 10px 20px;
+      background: #28a745;
+      color: white;
+      text-decoration: none;
+      border-radius: 6px;
+      font-weight: 500;
+      transition: background-color 0.2s;
+    }
+    .download-link:hover {
+      background: #218838;
+    }
+    .feed-url {
+      background: #f8f9fa;
+      padding: 12px;
+      border-radius: 6px;
+      margin-bottom: 16px;
+      border-left: 3px solid #0066cc;
+    }
+    .feed-url strong {
+      display: block;
+      margin-bottom: 6px;
+      color: #333;
+    }
+    .feed-url code {
+      background: white;
+      padding: 8px 12px;
+      border-radius: 4px;
+      display: block;
+      color: #0066cc;
+      font-size: 13px;
+      word-break: break-all;
+    }
+    .stats {
+      background: #e7f3ff;
+      padding: 12px;
+      border-radius: 6px;
+      margin-bottom: 16px;
+      color: #004085;
+      font-weight: 500;
+    }
+    .error {
+      color: #dc3545;
+      padding: 20px;
+      background: #f8d7da;
+      border-radius: 8px;
+      border-left: 4px solid #dc3545;
+    }
+    .loading {
+      padding: 20px;
+      background: #d1ecf1;
+      border-radius: 8px;
+      color: #0c5460;
+      border-left: 4px solid #17a2b8;
+    }
+    .help-text {
+      font-size: 13px;
+      color: #666;
+      margin-top: 4px;
+    }
+  </style>
+</head>
+<body>
+  <h1>RSS Feed Generator</h1>
+  <p class="subtitle">Generate RSS feeds for your AEM Edge Delivery content</p>
+  
+  <div class="controls">
+    <h3>Feed Configuration</h3>
+    <div class="form-group">
+      <label for="site">Site Name *</label>
+      <input type="text" id="site" placeholder="e.g., opensource" value="opensource">
+      <div class="help-text">The site name from your content structure</div>
+    </div>
+    <div class="form-group">
+      <label for="locale">Locale *</label>
+      <input type="text" id="locale" placeholder="e.g., en-us" value="en-us">
+      <div class="help-text">The locale/language code</div>
+    </div>
+    <div class="form-group">
+      <label for="section">Section (Optional)</label>
+      <input type="text" id="section" placeholder="e.g., blog or blog/news">
+      <div class="help-text">Specific section to filter. Leave empty for all content</div>
+    </div>
+    <button onclick="generateFeed()">🔄 Generate RSS Feed</button>
+  </div>
+  
+  <div id="output"></div>
+
+  <script type="module">
+    function escapeXml(unsafe) {
+      if (!unsafe) return '';
+      return String(unsafe)
+        .replace(/&/g, '&amp;')
+        .replace(/</g, '&lt;')
+        .replace(/>/g, '&gt;')
+        .replace(/"/g, '&quot;')
+        .replace(/'/g, '&apos;');
+    }
+
+    function generateRSSXML(items, config) {
+      const { site, locale, section, siteUrl, feedUrl } = config;
+      
+      const rssItems = items.map(item => {
+        const pubDate = item.lastModified 
+          ? new Date(item.lastModified * 1000).toUTCString() 
+          : new Date().toUTCString();
+        
+        const link = `${siteUrl}${item.path}`;
+        const title = item.title || 'Untitled';
+        const description = item.description || '';
+        
+        return `    <item>
+      <title><![CDATA[${title}]]></title>
+      <link>${link}</link>
+      <guid isPermaLink="true">${link}</guid>
+      <description><![CDATA[${description}]]></description>
+      <pubDate>${pubDate}</pubDate>
+      ${item.image ? `<enclosure url="${siteUrl}${item.image}" type="image/jpeg" />` : ''}
+      ${item.author ? `<author>${escapeXml(item.author)}</author>` : ''}
+      ${item.category ? `<category>${escapeXml(item.category)}</category>` : ''}
+    </item>`;
+      }).join('\n');
+      
+      const feedTitle = `${site.replace(/-/g, ' ').toUpperCase()}${section ? ` - ${section.replace(/-/g, ' ')}` : ''}`;
+      const feedLink = `${siteUrl}/${locale}/${site}${section ? `/${section}` : ''}`;
+      
+      return `<?xml version="1.0" encoding="UTF-8"?>
+<rss version="2.0" xmlns:atom="http://www.w3.org/2005/Atom">
+  <channel>
+    <title>${escapeXml(feedTitle)}</title>
+    <link>${feedLink}</link>
+    <atom:link href="${feedUrl}" rel="self" type="application/rss+xml" />
+    <description>Latest posts from ${escapeXml(site)}${section ? ` / ${section}` : ''}</description>
+    <language>${locale}</language>
+    <lastBuildDate>${new Date().toUTCString()}</lastBuildDate>
+    <generator>AEM Edge Delivery RSS Generator</generator>
+${rssItems}
+  </channel>
+</rss>`;
+    }
+
+    window.generateFeed = async function() {
+      const output = document.getElementById('output');
+      const site = document.getElementById('site').value.trim();
+      const locale = document.getElementById('locale').value.trim();
+      const section = document.getElementById('section').value.trim();
+      
+      if (!site || !locale) {
+        output.innerHTML = '<div class="error">❌ Error: Site and Locale are required fields</div>';
+        return;
+      }
+      
+      const siteUrl = window.location.origin;
+      const queryIndexUrl = `${siteUrl}/${locale}/${site}/query-index.json`;
+      const feedUrl = `${siteUrl}/tools/feed?site=${site}&locale=${locale}${section ? `&section=${section}` : ''}`;
+      
+      output.innerHTML = '<div class="loading">⏳ Generating RSS feed...</div>';
+      
+      try {
+        console.log(`Fetching query index from: ${queryIndexUrl}`);
+        
+        const response = await fetch(queryIndexUrl);
+        if (!response.ok) {
+          throw new Error(`Failed to fetch query index: ${response.status} ${response.statusText}`);
+        }
+        
+        const json = await response.json();
+        let data = json?.data || [];
+        
+        if (!Array.isArray(data)) {
+          throw new Error('Invalid query index format - expected data array');
+        }
+        
+        console.log(`Found ${data.length} total items in query index`);
+        
+        // Filter by section if specified
+        if (section) {
+          const pathPattern = `/${locale}/${site}/${section}`;
+          const originalLength = data.length;
+          data = data.filter(item => {
+            if (!item.path) return false;
+            const itemPath = item.path.toLowerCase();
+            const pattern = pathPattern.toLowerCase();
+            return itemPath.includes(pattern);
+          });
+          console.log(`Filtered from ${originalLength} to ${data.length} items for section: ${section}`);
+        }
+        
+        if (data.length === 0) {
+          throw new Error(`No content found for ${locale}/${site}${section ? `/${section}` : ''}`);
+        }
+        
+        // Sort by lastModified date (descending - newest first)
+        data.sort((a, b) => (b.lastModified || 0) - (a.lastModified || 0));
+        
+        // Limit to 50 most recent items
+        const MAX_ITEMS = 50;
+        const items = data.slice(0, MAX_ITEMS);
+        
+        console.log(`Generating RSS feed with ${items.length} items`);
+        
+        // Generate XML
+        const xml = generateRSSXML(items, {
+          site,
+          locale,
+          section,
+          siteUrl,
+          feedUrl,
+        });
+        
+        // Display XML
+        const escapedXml = escapeXml(xml);
+        
+        // Create downloadable blob
+        const blob = new Blob([xml], { type: 'application/rss+xml; charset=utf-8' });
+        const downloadUrl = URL.createObjectURL(blob);
+        const filename = `feed-${site}${section ? `-${section.replace(/\//g, '-')}` : ''}.xml`;
+        
+        output.innerHTML = `
+          <div class="result-header">
+            <a href="${downloadUrl}" download="${filename}" class="download-link">📥 Download RSS Feed</a>
+            <div class="feed-url">
+              <strong>Feed URL:</strong>
+              <code>${feedUrl}</code>
+            </div>
+            <div class="stats">
+              ✅ Successfully generated feed with ${items.length} item${items.length !== 1 ? 's' : ''}
+              ${data.length > MAX_ITEMS ? ` (showing ${MAX_ITEMS} most recent of ${data.length} total)` : ''}
+            </div>
+          </div>
+          <div class="result-content">
+            <pre><code>${escapedXml}</code></pre>
+          </div>
+        `;
+        
+        console.log('RSS feed generated successfully');
+        
+      } catch (error) {
+        output.innerHTML = `<div class="error">❌ Error: ${escapeXml(error.message)}</div>`;
+        console.error('Feed generation error:', error);
+      }
+    };
+
+    // Auto-generate from URL parameters
+    const urlParams = new URLSearchParams(window.location.search);
+    if (urlParams.has('site') || urlParams.has('locale')) {
+      const siteParam = urlParams.get('site');
+      const localeParam = urlParams.get('locale');
+      const sectionParam = urlParams.get('section');
+      
+      if (siteParam) document.getElementById('site').value = siteParam;
+      if (localeParam) document.getElementById('locale').value = localeParam;
+      if (sectionParam) document.getElementById('section').value = sectionParam;
+      
+      // Auto-generate on load if parameters are present
+      window.addEventListener('DOMContentLoaded', () => {
+        setTimeout(() => generateFeed(), 100);
+      });
+    }
+  </script>
+</body>
+</html>
