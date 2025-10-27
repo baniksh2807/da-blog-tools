@@ -14,6 +14,7 @@ const API = {
 const app = {
   context: null,
   token: null,
+  actions: null,
   results: [],
   selectedFiles: new Set(),
   fileCache: new Map(),
@@ -75,7 +76,8 @@ function renderHtmlOpsPathTags() {
     `;
 
     const removeBtn = tag.querySelector('.tag-remove');
-    removeBtn.addEventListener('click', () => {
+    removeBtn.addEventListener('click', (e) => {
+      e.stopPropagation(); // Prevent event bubbling
       removeHtmlOpsSearchPath(path);
     });
 
@@ -177,7 +179,7 @@ async function saveContent(filePath, content) {
 
 // Create version backup
 async function createVersion(filePath) {
-  const { token, actions } = app;
+  const { actions } = app;
   const orgSite = parseHtmlOpsOrgSite();
   if (!orgSite) return false;
 
@@ -630,7 +632,7 @@ function displayResults() {
 
   listContainer.innerHTML = '';
 
-  pageResults.forEach((result, index) => {
+  pageResults.forEach((result) => {
     const globalIndex = app.results.indexOf(result);
     const resultItem = createResultItem(result, globalIndex);
     listContainer.appendChild(resultItem);
@@ -657,7 +659,7 @@ function createResultItem(result, index) {
           <span class="stat-badge">${result.elementCount} element(s)</span>
         </div>
       </div>
-      <button class="expand-toggle" data-index="${index}">
+      <button class="expand-toggle" data-index="${index}" type="button">
         <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" class="icon">
           <path d="M6 9l6 6 6-6"/>
         </svg>
@@ -680,6 +682,7 @@ function createResultItem(result, index) {
 
   const checkbox = div.querySelector(`input[data-file-index="${index}"]`);
   checkbox.addEventListener('change', (e) => {
+    e.stopPropagation(); // Prevent triggering accordion
     result.selected = e.target.checked;
     if (e.target.checked) {
       app.selectedFiles.add(index);
@@ -693,7 +696,8 @@ function createResultItem(result, index) {
   const expandBtn = div.querySelector('.expand-toggle');
   const matchesContainer = div.querySelector('.result-matches');
   
-  expandBtn.addEventListener('click', () => {
+  expandBtn.addEventListener('click', (e) => {
+    e.stopPropagation(); // Prevent triggering parent events
     const isExpanded = matchesContainer.style.display !== 'none';
     matchesContainer.style.display = isExpanded ? 'none' : 'block';
     expandBtn.classList.toggle('expanded', !isExpanded);
@@ -756,6 +760,7 @@ function renderPageNumbers() {
     const pageBtn = document.createElement('button');
     pageBtn.className = `page-number ${i === currentPage ? 'active' : ''}`;
     pageBtn.textContent = i;
+    pageBtn.type = 'button';
     pageBtn.addEventListener('click', () => {
       app.pagination.currentPage = i;
       displayResults();
@@ -806,17 +811,26 @@ function showMessage(message, type = 'info') {
 
 // Setup event listeners
 function setupEventListeners() {
+  // Main operation buttons
   const scanElementsBtn = document.getElementById('scan-elements-btn');
   const addHtmlBtn = document.getElementById('add-html-btn');
   const deleteHtmlBtn = document.getElementById('delete-html-btn');
+  
+  if (scanElementsBtn) {
+    scanElementsBtn.addEventListener('click', scanForElements);
+  }
+  if (addHtmlBtn) {
+    addHtmlBtn.addEventListener('click', addHtmlNode);
+  }
+  if (deleteHtmlBtn) {
+    deleteHtmlBtn.addEventListener('click', deleteHtmlNode);
+  }
+
+  // Results control buttons
   const toggleAll = document.getElementById('toggle-all');
   const clearSelection = document.getElementById('clear-selection');
   const expandAll = document.getElementById('expand-all');
   const collapseAll = document.getElementById('collapse-all');
-
-  if (scanElementsBtn) scanElementsBtn.addEventListener('click', scanForElements);
-  if (addHtmlBtn) addHtmlBtn.addEventListener('click', addHtmlNode);
-  if (deleteHtmlBtn) deleteHtmlBtn.addEventListener('click', deleteHtmlNode);
 
   if (toggleAll) {
     toggleAll.addEventListener('click', () => {
@@ -877,24 +891,15 @@ function setupEventListeners() {
         }
       }
     });
-
-    htmlOpsPathInput.addEventListener('blur', () => {
-      const path = htmlOpsPathInput.value.trim();
-      if (path && addHtmlOpsSearchPath(path)) {
-        htmlOpsPathInput.value = '';
-      }
-    });
   }
 
   // HTML Operations org/site input validation
   const htmlOpsOrgSiteInput = document.getElementById('html-ops-org-site');
   if (htmlOpsOrgSiteInput) {
-    htmlOpsOrgSiteInput.addEventListener('blur', () => {
+    htmlOpsOrgSiteInput.addEventListener('input', () => {
       const orgSite = parseHtmlOpsOrgSite();
-      if (!orgSite) {
-        showMessage('Please enter org/site in format: /org/site in HTML Operations', 'warning');
-      } else {
-        showMessage('HTML Operations configuration ready', 'success');
+      if (orgSite) {
+        showMessage(`Configuration set: ${orgSite.org}/${orgSite.site}`, 'success');
       }
     });
   }
@@ -969,17 +974,30 @@ function setupEventListeners() {
     });
   }
 
-  // Accordion functionality
+  // Accordion functionality - FIXED
   document.querySelectorAll('.accordion-header').forEach(header => {
-    header.addEventListener('click', () => {
+    header.addEventListener('click', (e) => {
+      // Ignore clicks on form elements inside the accordion header
+      if (e.target.closest('input, button, select, textarea, .form-control')) {
+        return;
+      }
+
       const target = header.getAttribute('data-accordion-target');
       const content = document.getElementById(target);
       const card = header.closest('.accordion-card');
 
-      if (content) {
-        const isExpanded = content.style.display !== 'none';
-        content.style.display = isExpanded ? 'none' : 'block';
-        card?.classList.toggle('expanded', !isExpanded);
+      if (content && card) {
+        const isCurrentlyExpanded = content.style.display !== 'none';
+        
+        if (isCurrentlyExpanded) {
+          // Collapse
+          content.style.display = 'none';
+          card.classList.remove('expanded');
+        } else {
+          // Expand
+          content.style.display = 'block';
+          card.classList.add('expanded');
+        }
       }
     });
   });
@@ -996,11 +1014,16 @@ async function init() {
 
     setupEventListeners();
 
-    showMessage('HTML Operations Tool ready! Configure org/site and paths to get started.', 'success');
+    showMessage('HTML Operations Tool ready! Configure org/site to get started.', 'success');
   } catch (error) {
     showMessage('Failed to initialize app', 'error');
     console.error('Init error:', error);
   }
 }
 
-init();
+// Wait for DOM to be ready
+if (document.readyState === 'loading') {
+  document.addEventListener('DOMContentLoaded', init);
+} else {
+  init();
+}
