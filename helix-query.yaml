@@ -14,6 +14,10 @@ indices:
         select: none
         value: |
           parseTimestamp(headers['last-modified'], 'ddd, DD MMM YYYY hh:mm:ss GMT')
+      heroAlt:
+        select: main .hero-product > div:nth-child(2) > div > picture > img
+        value: |
+          attribute(el, 'alt')
       tags:
         select: head > meta[name="article-tag"]
         values: |
