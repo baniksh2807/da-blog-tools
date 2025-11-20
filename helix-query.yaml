@@ -58,6 +58,9 @@ indices:
         select: head > meta[name="robots"]
         value: |
           attribute(el, 'content')
+      content:
+        select: main
+        value: textContent(el)
  
   en-us-microsoft-fabric:
     include:
