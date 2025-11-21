@@ -151,7 +151,7 @@ async function generateSingleFeed(config) {
   // Add valid posts to feed
   console.log(`📝 Adding ${validPosts.length} posts to feed...`);
   validPosts.forEach((post, index) => {
-    const link = feedMetadata['site-root'] + post.path;
+    const link = feedMetadata['site-domain'] + post.path;
     
     try {
       feed.addItem({
