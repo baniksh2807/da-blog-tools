@@ -25,7 +25,8 @@ jobs:
     steps:
     - uses: actions/checkout@v4
       with:
-        token: ${{ secrets.GITHUB_TOKEN }}  # Add this line
+        token: ${{ secrets.GITHUB_TOKEN }}
+        fetch-depth: 0
     
     - name: Configure git
       run: |
@@ -70,9 +71,31 @@ jobs:
           echo "feed_count=0" >> $GITHUB_OUTPUT
         fi
 
+    - name: Debug git status
+      if: steps.changes.outputs.changed == 'true'
+      run: |
+        echo "=== Git Debug Info ==="
+        echo "Current branch: $(git branch --show-current)"
+        echo "Remote URL: $(git remote get-url origin)"
+        echo "Git status:"
+        git status
+        echo "Files to add:"
+        find . -name "feed.xml" -type f
+
     - name: Commit and push changes
       if: steps.changes.outputs.changed == 'true'
       run: |
+        # Add files
         find . -name "feed.xml" -type f -print0 | xargs -0 git add
+        
+        # Check if anything is staged
+        if git diff --cached --quiet; then
+          echo "No changes to commit"
+          exit 0
+        fi
+        
+        # Commit
         git commit -m "chore: update RSS feeds (${{ steps.changes.outputs.feed_count }} feeds) [skip ci]"
-        git push
+        
+        # Push with explicit branch
+        git push origin HEAD:${{ github.ref_name }}
