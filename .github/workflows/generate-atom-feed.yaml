@@ -1,15 +1,15 @@
-name: Generate Atom news feed
+name: Generate feed
 
 on:
   repository_dispatch:
     types:
       - resource-published
-  schedule:
-    - cron: '*/15 * * * *'
+  #schedule:
+   # - cron: '*/15 * * * *'
   pull_request:
     paths:
       - '.github/ci/**'
-      - '.github/workflows/generate-atom-news-feed.yaml'
+      - '.github/workflows/generate-atom-feed.yaml'
 # ADD THIS SECTION
 permissions:
   contents: write  # Required to push commits
@@ -41,7 +41,7 @@ jobs:
 
     - name: Generate feeds
       working-directory: ./.github/ci
-      run: node generate-news-feed.js
+      run: node generate-feed.js
 
     - name: List generated feeds
       run: |
