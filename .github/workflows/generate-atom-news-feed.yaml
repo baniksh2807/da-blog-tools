@@ -5,14 +5,13 @@ on:
     types:
       - resource-published
   schedule:
-    # Fixed comment to match actual cron
-    - cron: '*/15 * * * *'  # Every 15 minutes (WARNING: expensive!)
+    - cron: '*/15 * * * *'
   pull_request:
     paths:
       - '.github/ci/**'
       - '.github/workflows/generate-atom-news-feed.yaml'
-  workflow_dispatch: {}  # Fixed: Add empty object for proper parsing
-  push:  # Added: Immediate trigger for testing
+  workflow_dispatch: {}
+  push:
     branches: [main]
     paths:
       - '.github/ci/**'
@@ -24,146 +23,54 @@ jobs:
     timeout-minutes: 15
     
     steps:
-    - name: Workflow info
-      run: |
-        echo "🚀 Triggered by: ${{ github.event_name }}"
-        echo "📅 Time: $(date -u '+%Y-%m-%d %H:%M:%S UTC')"
-        echo "🔄 Run: #${{ github.run_number }}"
-        echo "🌿 Branch: ${{ github.ref_name }}"
-    
     - uses: actions/checkout@v4
-        
+    
     - name: Configure git
       run: |
         git config user.name "github-actions[bot]"
         git config user.email "github-actions[bot]@users.noreply.github.com"
         
-    - name: Check CI directory structure
-      run: |
-        echo "📁 Checking CI directory structure..."
-        ls -la ./.github/ci/
-        echo ""
-        echo "📄 Package files:"
-        ls -la ./.github/ci/package* || echo "No package files found"
-        
     - uses: actions/setup-node@v4
       with:
         node-version: '20'
-        # Removed cache config since package-lock.json doesn't exist
         
     - name: Install dependencies
       working-directory: ./.github/ci
-      run: |
-        echo "📦 Installing dependencies..."
-        # Check if package.json exists
-        if [ -f "package.json" ]; then
-          echo "✅ package.json found"
-          cat package.json
-          echo ""
-          echo "🔧 Installing with npm install (no lock file)..."
-          npm install
-        else
-          echo "❌ No package.json found, creating minimal one..."
-          npm init -y
-          npm install feed
-        fi
-        echo "✅ Dependencies installed"
-        echo "📊 Installed packages:"
-        npm list --depth=0 || echo "Could not list packages"
+      run: npm install
 
-    - name: Generate Feeds
+    - name: Generate feeds
       working-directory: ./.github/ci
-      run: |
-        echo "🚀 Starting feed generation..."
-        node generate-news-feed.js
-        echo "✅ Feed generation completed"
+      run: node generate-news-feed.js
 
     - name: List generated feeds
       run: |
-        echo "=== 📂 Generated Feed Files ==="
-        find . -name "feed.xml" -type f | while read feed; do
-          echo "📄 Found feed: $feed"
-          echo "   📏 Size: $(stat -f%z "$feed" 2>/dev/null || stat -c%s "$feed" 2>/dev/null) bytes"
-          echo "   📅 Modified: $(stat -f%Sm "$feed" 2>/dev/null || stat -c%y "$feed" 2>/dev/null)"
-          echo ""
+        find . -name "feed.xml" -type f | head -10 | while read feed; do
+          echo "Feed: $feed ($(stat -c%s "$feed" 2>/dev/null || stat -f%z "$feed" 2>/dev/null) bytes)"
         done
 
-    - name: Verify feed content
+    - name: Display feed content
       run: |
-        echo "=== 🔍 Feed Content Preview ==="
-        find . -name "feed.xml" -type f | while read feed; do
-          echo "=== Content of $feed ==="
+        find . -name "feed.xml" -type f | head -5 | while read feed; do
+          echo "=== $feed ==="
           head -15 "$feed"
-          echo ""
-          echo "=== End of $feed ==="
           echo ""
         done
 
     - name: Check for changes
       id: changes
       run: |
-        echo "=== 📊 Checking for file changes ==="
         if [ -n "$(git status --porcelain)" ]; then
           echo "changed=true" >> $GITHUB_OUTPUT
-          echo "✅ Files have changed:"
-          git status --short
-          
           CHANGED_FEEDS=$(git status --porcelain | grep "feed.xml" | wc -l)
           echo "feed_count=$CHANGED_FEEDS" >> $GITHUB_OUTPUT
-          echo "📊 Number of changed feeds: $CHANGED_FEEDS"
         else
           echo "changed=false" >> $GITHUB_OUTPUT
-          echo "ℹ️ No changes detected"
           echo "feed_count=0" >> $GITHUB_OUTPUT
         fi
 
-    - name: Show feed statistics
+    - name: Commit and push changes
       if: steps.changes.outputs.changed == 'true'
       run: |
-        echo "=== 📈 Feed Generation Statistics ==="
-        echo "Total feeds generated: ${{ steps.changes.outputs.feed_count }}"
-        
-        echo ""
-        echo "📂 Feed locations:"
-        git status --porcelain | grep "feed.xml" | while read status file; do
-          echo "   $status $file"
-        done
-        
-        echo ""
-        echo "📏 Feed sizes:"
-        find . -name "feed.xml" -type f -exec ls -lh {} \;
-
-    - name: Commit and push all feed changes
-      if: steps.changes.outputs.changed == 'true'
-      uses: stefanzweifel/git-auto-commit-action@v7
-      with:
-        file_pattern: '*/feed.xml **/*feed.xml **/*/feed.xml'
-        commit_message: 'chore: update RSS feeds (${{ steps.changes.outputs.feed_count }} feeds) [skip ci]'
-        commit_user_name: github-actions[bot]
-        commit_user_email: github-actions[bot]@users.noreply.github.com
-
-    - name: Post-commit summary
-      if: steps.changes.outputs.changed == 'true'
-      run: |
-        echo "=== ✅ Commit Summary ==="
-        echo "Successfully committed ${{ steps.changes.outputs.feed_count }} RSS feeds"
-        echo "🔗 Commit: ${{ github.sha }}"
-        echo "📅 Timestamp: $(date -u '+%Y-%m-%d %H:%M:%S UTC')"
-        
-        echo ""
-        echo "📄 Committed files:"
-        git show --name-only --pretty="" HEAD | grep "feed.xml" | while read file; do
-          echo "   ✓ $file"
-        done
-
-    - name: Feed URLs for testing
-      if: steps.changes.outputs.changed == 'true'
-      run: |
-        echo "=== 🌐 Feed URLs for Testing ==="
-        BASE_URL="https://main--da-blog-tools--baniksh2807.aem.live"
-        
-        find . -name "feed.xml" -type f | while read feed; do
-          FEED_PATH=$(echo "$feed" | sed 's|^\./||')
-          FEED_URL="$BASE_URL/$FEED_PATH"
-          echo "🔗 $FEED_URL"
-        done
+        find . -name "feed.xml" -type f -print0 | xargs -0 git add
+        git commit -m "chore: update RSS feeds (${{ steps.changes.outputs.feed_count }} feeds) [skip ci]"
+        git push
