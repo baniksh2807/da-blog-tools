@@ -4,192 +4,288 @@ import DA_SDK from 'https://da.live/nx/utils/sdk.js';
 import { DA_ORIGIN } from 'https://da.live/nx/public/utils/constants.js';
 
 const REPLACE_CONTENT = 'CONTENT';
+const multiSelectState = { enabled: false };
 
-function getQueryParam(param) {
-  const urlParams = new URLSearchParams(window.location.search);
-  const value = urlParams.get(param);
+// Utility functions
+const getQueryParam = (param) => {
+  const value = new URLSearchParams(window.location.search).get(param);
   return value ? decodeURIComponent(value) : value;
-}
-
-function formatData(data, format, type = '') {
-  const dataArr = data.data || data;
-  const result = dataArr.reduce((acc, item) => {
-    if (item.key) {
-      let content = item.key;
-      if (type != null && type !== '' && type === 'label' && item.value) {
-        content = item.value;
-      }
-      const toParse = format ? format.replace(REPLACE_CONTENT, content) : content;
-      const parsed = { text: toParse };
-      acc.push({ ...item, parsed });
-    }
-    return acc;
-  }, []);
-  return result;
-}
-
-function renderItems(items, listName, iconType = '', customClickHandler = null) {
-  return `
-    <ul class="da-library-type-list da-library-type-list-${listName}">
-      ${items.map((item) => {
-        const name = item.value || item.name || item.key;
-        if (!name) return '';
-        // Use custom click handler if provided, else default to handleItemClick
-        const clickHandler = customClickHandler
-          ? `${customClickHandler}(${JSON.stringify(item).replace(/"/g, '&quot;')})`
-          : `handleItemClick(${JSON.stringify(item).replace(/"/g, '&quot;')})`;
-        return `
-          <li class="da-library-type-item">
-            <button class="da-library-type-item-btn ${iconType}"
-              onclick="${clickHandler}">
-              <div class="da-library-type-item-detail">
-                ${item.icon && !item.url ? `<span class="icon-placeholder">${item.icon}</span>` : ''}
-                <span>${name}</span>
-                <svg class="icon">
-                  <use href="#spectrum-AddCircle"/>
-                </svg>
-              </div>
-            </button>
-          </li>`;
-      }).join('')}
-    </ul>`;
-}
-// Add state management for multi-select
-const multiSelectState = {
-  enabled: false,
 };
 
+const formatData = (data, format, type = '') => {
+  const dataArr = data.data || data;
+  return dataArr
+    .filter(item => item.key)
+    .map(item => {
+      const content = (type === 'label' && item.value) ? item.value : item.key;
+      const text = format ? format.replace(REPLACE_CONTENT, content) : content;
+      return { ...item, parsed: { text } };
+    });
+};
+
+const renderItems = (items, listName, iconType = '', customClickHandler = null) => {
+  if (!items?.length) return '<div class="no-value"><p>No items available</p></div>';
+
+  const itemsHtml = items
+    .filter(item => item.value || item.name || item.key)
+    .map(item => {
+      const name = item.value || item.name || item.key;
+      const clickHandler = customClickHandler || 'handleItemClick';
+      const itemJson = JSON.stringify(item).replace(/"/g, '&quot;');
+      
+      return `
+        <li class="da-library-type-item">
+          <button class="da-library-type-item-btn ${iconType}"
+            onclick="${clickHandler}(${itemJson})">
+            <div class="da-library-type-item-detail">
+              ${item.icon && !item.url ? `<span class="icon-placeholder">${item.icon}</span>` : ''}
+              <span>${name}</span>
+              <svg class="icon">
+                <use href="#spectrum-AddCircle"/>
+              </svg>
+            </div>
+          </button>
+        </li>`;
+    })
+    .join('');
+
+  return `<ul class="da-library-type-list da-library-type-list-${listName}">${itemsHtml}</ul>`;
+};
+
+// Event handlers
 async function handleItemClick(item) {
   try {
     const { actions } = await DA_SDK;
-    if (item.parsed && item.parsed.text) {
-      await actions.sendText(item.parsed.text);
-    } else if (item.key) {
-      await actions.sendText(item.key);
+    const text = item.parsed?.text || item.key;
+    
+    if (text) {
+      await actions.sendText(text);
+      if (!multiSelectState.enabled) {
+        await actions.closeLibrary();
+      }
     }
-     if (!multiSelectState.enabled) {
-      await actions.closeLibrary();
-     }
   } catch (error) {
-    // eslint-disable-next-line no-console
     console.error('Error sending text:', error);
   }
 }
 
-window.handleItemClick = handleItemClick;
-window.insertAuthorToPage = insertAuthorToPage;
-
-/**
- * Utility to insert author info into the article header, article summary, and metadata.
- * @param {Object} item - The author item (expects { key, value })
- */
 async function insertAuthorToPage(item) {
   try {
-    const { context, token, actions } = await DA_SDK;
-
-    const authorKey = item.key;
+    const { context, actions } = await DA_SDK;
     const resultDiv = document.getElementById('sheetDataList');
 
-    if (item.parsed && item.parsed.text) {
-        await actions.sendText(item.parsed.text);
-      } else if (item.key) {
-        await actions.sendText(authorKey);
-    }
-    resultDiv.innerHTML = `
-        <div id="sheetDataList">
-          <div class="loading-spinner">
-            <div class="spinner"></div>
-            <p>Wait for sometime...to update the author</p>
-          </div>
-        </div>
-      `;
-    // Add a delay before saving
-    await new Promise(resolve => setTimeout(resolve, 3000)); // 500ms delay
-      
-    // 1. Download the page source
-    const sourceUrl = `${DA_ORIGIN}/source/${context.org}/${context.repo}${context.path}.html`;
-    const response = await actions.daFetch(sourceUrl);
-    if (!response.ok) throw new Error(`Failed to fetch page source: ${response.statusText}`);
-    const sourceContent = await response.text();
+    // Send text first
+    const text = item.parsed?.text || item.key;
+    if (text) await actions.sendText(text);
 
-    // 2. Parse HTML
-    const parser = new DOMParser();
-    const doc = parser.parseFromString(sourceContent, 'text/html');
-    console.log('before updating:', doc.documentElement.outerHTML);
-    // --- METADATA BLOCK ---
-    let metadata = doc.querySelector('.metadata');
-    if (!metadata) {
-      metadata = doc.createElement('div');
-      metadata.className = 'metadata';
-      const main = doc.querySelector('main') || doc.body;
-      main.insertBefore(metadata, main.firstChild);
-    }
-    // Look for existing author row
-    let authorRow = Array.from(metadata.children).find(row => {
-      const keyDiv = row.children[0];
-      const keyElement = keyDiv.querySelector('p');
-      const keyText = keyElement
-        ? keyElement.textContent.trim().toLowerCase()
-        : keyDiv.textContent.trim().toLowerCase();
-      return keyText === 'author';
-    });
-    let newValue;
-    if (!authorRow) {
-      // Create new row
-      authorRow = doc.createElement('div');
-      authorRow.innerHTML = `<div><p>author</p></div><div><p>${item.value}</p></div>`;
-      metadata.appendChild(authorRow);
-      newValue = item.value;
-    } else {
-      // Update value in the second column (second div) with comma separated values
-      const valueDiv = authorRow.children[1];
-      const valueP = valueDiv.querySelector('p');
-      let currentValue = valueP ? valueP.textContent.trim() : valueDiv.textContent.trim();
-      const values = currentValue ? currentValue.split(',').map(v => v.trim()) : [];
-      if (!values.includes(item.value)) {
-        values.push(item.value);
-      }
-      newValue = values.filter(Boolean).join(', ');
-      if (valueP) valueP.textContent = newValue;
-      else valueDiv.textContent = newValue;
+    // Show loading state
+    if (resultDiv) {
+      resultDiv.innerHTML = `
+        <div class="loading-spinner">
+          <div class="spinner"></div>
+          <p>Updating author information...</p>
+        </div>`;
     }
 
-    // 3. Serialize and save
-    let updatedHtml = doc.documentElement.outerHTML;
-    //updatedHtml = updatedHtml.replace(/<!--[\s\S]*?-->/g, ''); // Remove comments
-    console.log('Saving:', updatedHtml);
-    const body = new FormData();
-    body.append('data', new Blob([updatedHtml], { type: 'text/html' }));
+    // Add delay for processing
+    await new Promise(resolve => setTimeout(resolve, 3000));
 
-    // 4. Update document and then send text
-    const updateResponse = await actions.daFetch(sourceUrl, {
-      method: 'POST',
-      body,
-    });
-    if (!updateResponse.ok) throw new Error(`Failed to update page: ${updateResponse.statusText}`);
-
-    // Only after update, send text to editor and close library
-      await actions.closeLibrary();
+    // Update document metadata
+    await updateAuthorMetadata(item, context, actions);
+    await actions.closeLibrary();
 
   } catch (error) {
-    // eslint-disable-next-line no-console
     console.error('Error inserting author info:', error);
-    // Optionally, show an error message
-    // alert('Failed to add author info: ' + error.message);
   }
 }
 
-async function updateDocumentAndCallback(sourceUrl, body, callback) {
-  const { actions } = await DA_SDK;
-  const updateResponse = await actions.daFetch(sourceUrl, {
-    method: 'POST',
-    body,
+async function updateAuthorMetadata(item, context, actions) {
+  const sourceUrl = `${DA_ORIGIN}/source/${context.org}/${context.repo}${context.path}.html`;
+  
+  // Fetch and parse document
+  const response = await actions.daFetch(sourceUrl);
+  if (!response.ok) throw new Error(`Failed to fetch page source: ${response.statusText}`);
+  
+  const doc = new DOMParser().parseFromString(await response.text(), 'text/html');
+  
+  // Update metadata
+  let metadata = doc.querySelector('.metadata');
+  if (!metadata) {
+    metadata = doc.createElement('div');
+    metadata.className = 'metadata';
+    const main = doc.querySelector('main') || doc.body;
+    main.insertBefore(metadata, main.firstChild);
+  }
+
+  // Find or create author row
+  let authorRow = Array.from(metadata.children).find(row => {
+    const keyDiv = row.children[0];
+    const keyText = (keyDiv.querySelector('p')?.textContent || keyDiv.textContent).trim().toLowerCase();
+    return keyText === 'author';
   });
+
+  if (!authorRow) {
+    authorRow = doc.createElement('div');
+    authorRow.innerHTML = `<div><p>author</p></div><div><p>${item.value}</p></div>`;
+    metadata.appendChild(authorRow);
+  } else {
+    // Update existing author with comma-separated values
+    const valueDiv = authorRow.children[1];
+    const valueP = valueDiv.querySelector('p');
+    const currentValue = (valueP?.textContent || valueDiv.textContent).trim();
+    const values = currentValue ? currentValue.split(',').map(v => v.trim()) : [];
+    
+    if (!values.includes(item.value)) {
+      values.push(item.value);
+      const newValue = values.filter(Boolean).join(', ');
+      if (valueP) valueP.textContent = newValue;
+      else valueDiv.textContent = newValue;
+    }
+  }
+
+  // Save document
+  const body = new FormData();
+  body.append('data', new Blob([doc.documentElement.outerHTML], { type: 'text/html' }));
+  
+  const updateResponse = await actions.daFetch(sourceUrl, { method: 'POST', body });
   if (!updateResponse.ok) throw new Error(`Failed to update page: ${updateResponse.statusText}`);
-  // Execute the callback after update
-  await callback(actions);
 }
 
+// Multi-sheet functionality
+const getUniqueTaxonomies = (data) => {
+  const taxonomies = new Set();
+  data.forEach(item => item.taxonomy && taxonomies.add(item.taxonomy));
+  return Array.from(taxonomies).sort();
+};
+
+const filterItemsBySiteAndTaxonomy = (jsonData, selectedSite, selectedTaxonomy) => {
+  const sheetObj = jsonData[selectedSite];
+  const rawItems = Array.isArray(sheetObj) ? sheetObj : (sheetObj?.items || sheetObj?.data || []);
+  
+  return selectedTaxonomy 
+    ? rawItems.filter(item => item.taxonomy === selectedTaxonomy)
+    : rawItems;
+};
+
+const createMultiSheetInterface = (sheetNames) => `
+  <div class="result">
+    <div class="filter-controls">
+      <div class="filter-group">
+        <label for="siteDropdown"><strong>Select Site:</strong></label>
+        <select id="siteDropdown">
+          <option value="">-- Select a Site --</option>
+          ${sheetNames.map(site => `<option value="${site}">${site}</option>`).join('')}
+        </select>
+      </div>
+      <div class="filter-group">
+        <label for="taxonomyDropdown"><strong>Filter by Category:</strong></label>
+        <select id="taxonomyDropdown" disabled>
+          <option value="">-- Select a Category --</option>
+        </select>
+      </div>
+    </div>
+    <div id="sheetDataList"></div>
+  </div>
+`;
+
+const updateTaxonomyDropdown = (jsonData, selectedSite) => {
+  const taxonomyDropdown = document.getElementById('taxonomyDropdown');
+  
+  if (!selectedSite) {
+    taxonomyDropdown.innerHTML = '<option value="">-- Select a Category --</option>';
+    taxonomyDropdown.disabled = true;
+    return;
+  }
+  
+  const sheetObj = jsonData[selectedSite];
+  const rawItems = Array.isArray(sheetObj) ? sheetObj : (sheetObj?.items || sheetObj?.data || []);
+  const taxonomies = getUniqueTaxonomies(rawItems);
+  
+  taxonomyDropdown.innerHTML = `
+    <option value="">-- All Categories --</option>
+    ${taxonomies.map(taxonomy => `<option value="${taxonomy}">${taxonomy}</option>`).join('')}
+  `;
+  taxonomyDropdown.disabled = false;
+};
+
+const renderFilteredItems = (jsonData, selectedSite, selectedTaxonomy, typeJson, format) => {
+  const sheetDataListDiv = document.getElementById('sheetDataList');
+  
+  if (!selectedSite) {
+    sheetDataListDiv.innerHTML = '<p>Please select a site to view items.</p>';
+    return;
+  }
+  
+  const filteredItems = filterItemsBySiteAndTaxonomy(jsonData, selectedSite, selectedTaxonomy);
+  
+  if (!filteredItems?.length) {
+    const noDataText = selectedTaxonomy 
+      ? `No items found in "${selectedTaxonomy}" category for "${selectedSite}"`
+      : `No data found for "${selectedSite}"`;
+    sheetDataListDiv.innerHTML = `<div class="no-value"><p>${noDataText}</p></div>`;
+    return;
+  }
+
+  // Render items based on type
+  let itemsHtml;
+  if (typeJson === 'authors') {
+    itemsHtml = renderItems(filteredItems, 'authors', '', 'insertAuthorToPage');
+  } else {
+    const finalFormat = getEffectiveFormat(format);
+    const formattedItems = finalFormat ? formatData({ data: filteredItems }, finalFormat) : filteredItems;
+    itemsHtml = renderItems(formattedItems, 'sheet');
+  }
+  
+  // Add count information
+  const countText = selectedTaxonomy 
+    ? `Showing ${filteredItems.length} items in "${selectedTaxonomy}" category`
+    : `Showing ${filteredItems.length} items (all categories)`;
+  
+  sheetDataListDiv.innerHTML = `
+    <div class="item-count"><p><em>${countText}</em></p></div>
+    ${itemsHtml}
+  `;
+};
+
+const getEffectiveFormat = (format) => {
+  const rawUrl = window.location.href;
+  const hasComma = rawUrl.includes('CONTENT%2C') || rawUrl.includes('CONTENT,');
+  const effectiveFormat = format || 'CONTENT';
+  return hasComma && !effectiveFormat.endsWith(',') ? `${effectiveFormat},` : effectiveFormat;
+};
+
+const setupMultiSheetEventListeners = (jsonData, typeJson, format) => {
+  const siteDropdown = document.getElementById('siteDropdown');
+  const taxonomyDropdown = document.getElementById('taxonomyDropdown');
+
+  siteDropdown.addEventListener('change', () => {
+    const selectedSite = siteDropdown.value;
+    updateTaxonomyDropdown(jsonData, selectedSite);
+    taxonomyDropdown.value = '';
+    renderFilteredItems(jsonData, selectedSite, '', typeJson, format);
+  });
+
+  taxonomyDropdown.addEventListener('change', () => {
+    const selectedSite = siteDropdown.value;
+    const selectedTaxonomy = taxonomyDropdown.value;
+    renderFilteredItems(jsonData, selectedSite, selectedTaxonomy, typeJson, format);
+  });
+};
+
+const renderSingleSheetWithSiteFilter = (items, typeJson, sites) => {
+  return `
+    <div class="result">
+      <label for="siteDropdown"><strong>Select Site:</strong></label>
+      <select id="siteDropdown">
+        <option value="">-- Select a Site --</option>
+        ${sites.map(site => `<option value="${site}">${site}</option>`).join('')}
+      </select>
+      <div id="authorsList"></div>
+    </div>
+  `;
+};
+
+// Main display function
 async function displayListValue() {
   const contentPath = getQueryParam('content');
   const format = getQueryParam('format');
@@ -199,144 +295,7 @@ async function displayListValue() {
 
   multiSelectState.enabled = multiSelect === 'true';
   
-  if (contentPath) {
-    try {
-      resultDiv.innerHTML = `
-        <div class="result">
-          <div class="loading-spinner">
-            <div class="spinner"></div>
-            <p>Loading...</p>
-          </div>
-        </div>
-      `;
-      const { context, actions } = await DA_SDK;
-
-      // Check if contentPath is a full URL or relative path
-      const isFullUrl = contentPath.startsWith('http://') || contentPath.startsWith('https://');
-      let adminApiUrl = isFullUrl ? contentPath : `${DA_ORIGIN}/source/${context.org}/${context.repo}${contentPath}`;
-
-      // Fetch the main JSON (multi-sheet or regular)
-      const response = isFullUrl ? await fetch(adminApiUrl) : await actions.daFetch(adminApiUrl);
-      if (!response.ok) {
-        throw new Error(`HTTP error! status: ${response.status}`);
-      }
-      const jsonData = await response.json();
-
-      // Detect multi-sheet format
-      const isMultiSheet = jsonData[':type'] === 'multi-sheet' && Array.isArray(jsonData[':names']);
-      if (isMultiSheet) {
-        // Render dropdown for sheets (sites)
-        const sheetNames = jsonData[':names'];
-        resultDiv.innerHTML = `
-          <div class="result">
-            <label for="siteDropdown"><strong>Select Site:</strong></label>
-            <select id="siteDropdown">
-              <option value="">-- Select a Site --</option>
-              ${sheetNames.map(site => `<option value="${site}">${site}</option>`).join('')}
-            </select>
-            <div id="sheetDataList"></div>
-          </div>
-        `;
-        const dropdown = document.getElementById('siteDropdown');
-        const sheetDataListDiv = document.getElementById('sheetDataList');
-
-        dropdown.addEventListener('change', () => {
-          const selectedSheet = dropdown.value;
-          if (!selectedSheet) {
-            sheetDataListDiv.innerHTML = '';
-            return;
-          }
-          // Instead of fetching, use the data from the loaded JSON
-          const sheetObj = jsonData[selectedSheet];
-          const rawItems = Array.isArray(sheetObj) ? sheetObj : (sheetObj.items || sheetObj.data || []);
-          if (typeJson === 'authors') {
-            if (rawItems && rawItems.length > 0) {
-              sheetDataListDiv.innerHTML = renderItems(rawItems, 'authors', '', 'insertAuthorToPage');
-            } else {
-              sheetDataListDiv.innerHTML = `<div class="no-value"><p>No data found for "${selectedSheet}"</p></div>`;
-            }
-          } else {
-            if (rawItems && rawItems.length > 0) {
-             // Apply format to sheet data like in the single-sheet logic
-              const rawUrl = window.location.href;
-              const hasComma = rawUrl.includes('CONTENT%2C') || rawUrl.includes('CONTENT,');
-              const effectiveFormat = format || 'CONTENT';
-              const finalFormat = hasComma && !effectiveFormat.endsWith(',') ? `${effectiveFormat},` : effectiveFormat;
-              
-              // Format the data if format is provided
-              const formattedItems = finalFormat ? formatData({ data: rawItems }, finalFormat) : rawItems;
-              
-              sheetDataListDiv.innerHTML = renderItems(formattedItems, 'sheet');
-            } else {
-              sheetDataListDiv.innerHTML = `<div class="no-value"><p>No data found for "${selectedSheet}"</p></div>`;
-            }
-          }
-        });
-      } else {
-        // Fallback to original logic for single-sheet/regular JSON
-        const rawItems = Array.isArray(jsonData) ? jsonData : (jsonData.items || jsonData.data || []);
-        if (rawItems && rawItems.length > 0) {
-          const rawUrl = window.location.href;
-          const hasComma = rawUrl.includes('CONTENT%2C') || rawUrl.includes('CONTENT,');
-          const effectiveFormat = format || 'CONTENT';
-          // Only add comma if the format doesn't already end with one
-          const finalFormat = hasComma && !effectiveFormat.endsWith(',') ? `${effectiveFormat},` : effectiveFormat;
-          const items = finalFormat ? formatData(jsonData, finalFormat) : rawItems;
-
-          // Build unique site list from sitegroup
-          const sites = [...new Set(items.map((item) => item.sitegroup).filter(Boolean))];
-          if (typeJson === 'authors' && sites.length > 0) {
-            // Render dropdown for sites only (no type dropdown)
-            resultDiv.innerHTML = `
-              <div class="result">
-                <label for="siteDropdown"><strong>Select Site:</strong></label>
-                <select id="siteDropdown">
-                  <option value="">-- Select a Site --</option>
-                  ${sites.map(site => `<option value="${site}">${site}</option>`).join('')}
-                </select>
-                <div id="authorsList"></div>
-              </div>
-            `;
-            const dropdown = document.getElementById('siteDropdown');
-            const authorsListDiv = document.getElementById('authorsList');
-
-            // Helper to render authors based on dropdown
-            function renderAuthorsList() {
-              const selectedSite = dropdown.value;
-              if (selectedSite) {
-                let filteredAuthors = items.filter(item => item.sitegroup === selectedSite);
-                authorsListDiv.innerHTML = renderItems(filteredAuthors, 'authors', '', 'insertAuthorToPage');
-              } else {
-                authorsListDiv.innerHTML = '<p>Please select a site to view authors.</p>';
-              }
-            }
-
-            dropdown.addEventListener('change', renderAuthorsList);
-          } else {
-            resultDiv.innerHTML = `
-              <div class="result">
-                ${renderItems(items, 'default')}
-              </div>
-            `;
-          }
-        } else {
-          resultDiv.innerHTML = `
-            <div class="result">
-              <pre>${JSON.stringify(jsonData, null, 2)}</pre>
-            </div>
-          `;
-        }
-      }
-    } catch (error) {
-      resultDiv.innerHTML = `
-        <div class="no-value">
-          <h3>Error Fetching JSON:</h3>
-          <p><strong>Path: "${contentPath}"</strong></p>
-          <p>Error: ${error.message}</p>
-        </div>
-      `;
-    }
-  } else {
+  if (!contentPath) {
     resultDiv.innerHTML = `
       <div class="no-value">
         <h3>No Content Path Found</h3>
@@ -344,9 +303,83 @@ async function displayListValue() {
         <p>Try adding <code>?content=/docs/library/authors.json</code> to the URL.</p>
       </div>
     `;
+    return;
+  }
+
+  try {
+    // Show loading state
+    resultDiv.innerHTML = `
+      <div class="result">
+        <div class="loading-spinner">
+          <div class="spinner"></div>
+          <p>Loading...</p>
+        </div>
+      </div>
+    `;
+
+    const { context, actions } = await DA_SDK;
+    const isFullUrl = contentPath.startsWith('http://') || contentPath.startsWith('https://');
+    const adminApiUrl = isFullUrl ? contentPath : `${DA_ORIGIN}/source/${context.org}/${context.repo}${contentPath}`;
+
+    // Fetch JSON data
+    const response = isFullUrl ? await fetch(adminApiUrl) : await actions.daFetch(adminApiUrl);
+    if (!response.ok) throw new Error(`HTTP error! status: ${response.status}`);
+    
+    const jsonData = await response.json();
+
+    // Handle multi-sheet format
+    const isMultiSheet = jsonData[':type'] === 'multi-sheet' && Array.isArray(jsonData[':names']);
+    
+    if (isMultiSheet) {
+      resultDiv.innerHTML = createMultiSheetInterface(jsonData[':names']);
+      setupMultiSheetEventListeners(jsonData, typeJson, format);
+    } else {
+      // Handle single-sheet format
+      const rawItems = Array.isArray(jsonData) ? jsonData : (jsonData.items || jsonData.data || []);
+      
+      if (!rawItems?.length) {
+        resultDiv.innerHTML = `<div class="result"><pre>${JSON.stringify(jsonData, null, 2)}</pre></div>`;
+        return;
+      }
+
+      const finalFormat = getEffectiveFormat(format);
+      const items = finalFormat ? formatData(jsonData, finalFormat) : rawItems;
+      const sites = [...new Set(items.map(item => item.sitegroup).filter(Boolean))];
+
+      if (typeJson === 'authors' && sites.length > 0) {
+        resultDiv.innerHTML = renderSingleSheetWithSiteFilter(items, typeJson, sites);
+        
+        const dropdown = document.getElementById('siteDropdown');
+        const authorsListDiv = document.getElementById('authorsList');
+
+        dropdown.addEventListener('change', () => {
+          const selectedSite = dropdown.value;
+          if (selectedSite) {
+            const filteredAuthors = items.filter(item => item.sitegroup === selectedSite);
+            authorsListDiv.innerHTML = renderItems(filteredAuthors, 'authors', '', 'insertAuthorToPage');
+          } else {
+            authorsListDiv.innerHTML = '<p>Please select a site to view authors.</p>';
+          }
+        });
+      } else {
+        resultDiv.innerHTML = `<div class="result">${renderItems(items, 'default')}</div>`;
+      }
+    }
+
+  } catch (error) {
+    resultDiv.innerHTML = `
+      <div class="no-value">
+        <h3>Error Fetching JSON:</h3>
+        <p><strong>Path: "${contentPath}"</strong></p>
+        <p>Error: ${error.message}</p>
+      </div>
+    `;
   }
 }
 
-document.addEventListener('DOMContentLoaded', () => {
-  displayListValue();
-});
+// Global function assignments
+window.handleItemClick = handleItemClick;
+window.insertAuthorToPage = insertAuthorToPage;
+
+// Initialize on DOM load
+document.addEventListener('DOMContentLoaded', displayListValue);
