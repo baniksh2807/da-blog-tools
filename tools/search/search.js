@@ -844,7 +844,28 @@ function searchForElements(content, selector) {
   try {
     const parser = new DOMParser();
     const doc = parser.parseFromString(content, 'text/html');
-    const elements = doc.querySelectorAll(selector);
+    
+    // Debug: Log the selector being used
+    console.log('Searching for selector:', selector);
+    
+    // Handle different selector formats that might be causing issues
+    let processedSelector = selector.trim();
+    
+    // If selector contains spaces without proper CSS combinators, treat as class names
+    if (!processedSelector.includes('.') && !processedSelector.includes('#') && 
+        !processedSelector.includes('[') && !processedSelector.includes('>') && 
+        !processedSelector.includes('+') && !processedSelector.includes('~')) {
+      
+      // Convert space-separated words to class selector
+      // "article-summary with-author block" becomes ".article-summary.with-author.block"
+      const classNames = processedSelector.split(/\s+/).filter(name => name.length > 0);
+      processedSelector = '.' + classNames.join('.');
+    }
+    
+    console.log('Processed selector:', processedSelector);
+    
+    const elements = doc.querySelectorAll(processedSelector);
+    console.log('Found elements:', elements.length);
 
     if (elements.length === 0) {
       return { matches: [], updatedContent: content };
@@ -854,12 +875,16 @@ function searchForElements(content, selector) {
     const matches = Array.from(elements).map((element, index) => {
       const elementText = element.textContent?.trim() || '';
       const elementHTML = element.outerHTML;
-
+      
+      // Get element's class names for better identification
+      const classNames = element.className || '';
+      const tagName = element.tagName.toLowerCase();
+      
       return {
         index,
-        match: `Element ${index + 1}: ${selector}`,
+        match: `${tagName}${classNames ? `.${classNames.replace(/\s+/g, '.')}` : ''} (Element ${index + 1})`,
         context: elementText.length > 100 ? `${elementText.substring(0, 100)}...` : elementText,
-        line: `Found element: ${selector}`,
+        line: `Found element: ${processedSelector}`,
         elementHTML: elementHTML.length > 200 ? `${elementHTML.substring(0, 200)}...` : elementHTML,
       };
     });
@@ -871,6 +896,7 @@ function searchForElements(content, selector) {
       foundElements: true,
     };
   } catch (error) {
+    console.error('Error in searchForElements:', error);
     return { matches: [], updatedContent: content };
   }
 }
