@@ -158,6 +158,12 @@ const getUniqueTaxonomies = (data) => {
   return Array.from(taxonomies).sort();
 };
 
+const hasTaxonomyData = (jsonData, selectedSite) => {
+  const sheetObj = jsonData[selectedSite];
+  const rawItems = Array.isArray(sheetObj) ? sheetObj : (sheetObj?.items || sheetObj?.data || []);
+  return rawItems.some(item => item.taxonomy);
+};
+
 const filterItemsBySiteAndTaxonomy = (jsonData, selectedSite, selectedTaxonomy) => {
   const sheetObj = jsonData[selectedSite];
   const rawItems = Array.isArray(sheetObj) ? sheetObj : (sheetObj?.items || sheetObj?.data || []);
@@ -167,31 +173,43 @@ const filterItemsBySiteAndTaxonomy = (jsonData, selectedSite, selectedTaxonomy) 
     : rawItems;
 };
 
-const createMultiSheetInterface = (sheetNames) => `
-  <div class="result">
-    <div class="filter-controls">
-      <div class="filter-group">
-        <label for="siteDropdown"><strong>Select Site:</strong></label>
-        <select id="siteDropdown">
-          <option value="">-- Select a Site --</option>
-          ${sheetNames.map(site => `<option value="${site}">${site}</option>`).join('')}
-        </select>
-      </div>
-      <div class="filter-group">
-        <label for="taxonomyDropdown"><strong>Filter by Category:</strong></label>
-        <select id="taxonomyDropdown" disabled>
-          <option value="">-- Select a Category --</option>
-        </select>
-      </div>
+const createMultiSheetInterface = (sheetNames, jsonData) => {
+  // Check if any site has taxonomy data
+  const hasTaxonomy = sheetNames.some(site => hasTaxonomyData(jsonData, site));
+  
+  const categoryDropdown = hasTaxonomy ? `
+    <div class="filter-group">
+      <label for="taxonomyDropdown"><strong>Filter by Category:</strong></label>
+      <select id="taxonomyDropdown" disabled>
+        <option value="">-- Select a Category --</option>
+      </select>
     </div>
-    <div id="sheetDataList"></div>
-  </div>
-`;
+  ` : '';
+
+  return `
+    <div class="result">
+      <div class="filter-controls">
+        <div class="filter-group">
+          <label for="siteDropdown"><strong>Select Site:</strong></label>
+          <select id="siteDropdown">
+            <option value="">-- Select a Site --</option>
+            ${sheetNames.map(site => `<option value="${site}">${site}</option>`).join('')}
+          </select>
+        </div>
+        ${categoryDropdown}
+      </div>
+      <div id="sheetDataList"></div>
+    </div>
+  `;
+};
 
 const updateTaxonomyDropdown = (jsonData, selectedSite) => {
   const taxonomyDropdown = document.getElementById('taxonomyDropdown');
   
-  if (!selectedSite) {
+  // Return early if no taxonomy dropdown exists
+  if (!taxonomyDropdown) return;
+  
+  if (!selectedSite || !hasTaxonomyData(jsonData, selectedSite)) {
     taxonomyDropdown.innerHTML = '<option value="">-- Select a Category --</option>';
     taxonomyDropdown.disabled = true;
     return;
@@ -230,21 +248,30 @@ const renderFilteredItems = (jsonData, selectedSite, selectedTaxonomy, typeJson,
   let itemsHtml;
   if (typeJson === 'authors') {
     itemsHtml = renderItems(filteredItems, 'authors', '', 'insertAuthorToPage');
+    // For authors: no item count, just show the items
+    sheetDataListDiv.innerHTML = itemsHtml;
   } else {
     const finalFormat = getEffectiveFormat(format);
     const formattedItems = finalFormat ? formatData({ data: filteredItems }, finalFormat) : filteredItems;
     itemsHtml = renderItems(formattedItems, 'sheet');
+    
+    // Only show item count if taxonomy data exists and it's not authors
+    const showItemCount = hasTaxonomyData(jsonData, selectedSite);
+    
+    if (showItemCount) {
+      const countText = selectedTaxonomy 
+        ? `Showing ${filteredItems.length} items in "${selectedTaxonomy}" category`
+        : `Showing ${filteredItems.length} items (all categories)`;
+      
+      sheetDataListDiv.innerHTML = `
+        <div class="item-count"><p><em>${countText}</em></p></div>
+        ${itemsHtml}
+      `;
+    } else {
+      // No taxonomy data, just show items without count
+      sheetDataListDiv.innerHTML = itemsHtml;
+    }
   }
-  
-  // Add count information
-  const countText = selectedTaxonomy 
-    ? `Showing ${filteredItems.length} items in "${selectedTaxonomy}" category`
-    : `Showing ${filteredItems.length} items (all categories)`;
-  
-  sheetDataListDiv.innerHTML = `
-    <div class="item-count"><p><em>${countText}</em></p></div>
-    ${itemsHtml}
-  `;
 };
 
 const getEffectiveFormat = (format) => {
@@ -261,15 +288,23 @@ const setupMultiSheetEventListeners = (jsonData, typeJson, format) => {
   siteDropdown.addEventListener('change', () => {
     const selectedSite = siteDropdown.value;
     updateTaxonomyDropdown(jsonData, selectedSite);
-    taxonomyDropdown.value = '';
+    
+    // Reset taxonomy selection if dropdown exists
+    if (taxonomyDropdown) {
+      taxonomyDropdown.value = '';
+    }
+    
     renderFilteredItems(jsonData, selectedSite, '', typeJson, format);
   });
 
-  taxonomyDropdown.addEventListener('change', () => {
-    const selectedSite = siteDropdown.value;
-    const selectedTaxonomy = taxonomyDropdown.value;
-    renderFilteredItems(jsonData, selectedSite, selectedTaxonomy, typeJson, format);
-  });
+  // Only add taxonomy dropdown listener if it exists
+  if (taxonomyDropdown) {
+    taxonomyDropdown.addEventListener('change', () => {
+      const selectedSite = siteDropdown.value;
+      const selectedTaxonomy = taxonomyDropdown.value;
+      renderFilteredItems(jsonData, selectedSite, selectedTaxonomy, typeJson, format);
+    });
+  }
 };
 
 const renderSingleSheetWithSiteFilter = (items, typeJson, sites) => {
@@ -331,7 +366,7 @@ async function displayListValue() {
     const isMultiSheet = jsonData[':type'] === 'multi-sheet' && Array.isArray(jsonData[':names']);
     
     if (isMultiSheet) {
-      resultDiv.innerHTML = createMultiSheetInterface(jsonData[':names']);
+      resultDiv.innerHTML = createMultiSheetInterface(jsonData[':names'], jsonData);
       setupMultiSheetEventListeners(jsonData, typeJson, format);
     } else {
       // Handle single-sheet format
