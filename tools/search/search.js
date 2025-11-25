@@ -160,25 +160,36 @@ async function fetchAllFiles() {
   }
 
   const processedPaths = new Set();
-
-  await Promise.all(app.searchPaths.map(async (path) => {
-    if (processedPaths.has(path)) return;
+  const fetchPromises = app.searchPaths.map(async (path) => {
+    if (processedPaths.has(path)) return [];
     processedPaths.add(path);
 
     try {
+      updateProgress(30, `Fetching files from ${path}...`);
       const files = await fetchFiles(path);
-      // Filter out duplicates based on file path
-      files.forEach((file) => {
-        if (!allFiles.some((existing) => existing.path === file.path)) {
-          allFiles.push(file);
-        }
-      });
+      return files || [];
     } catch (error) {
       showMessage(`Error fetching files from ${path}: ${error.message}`, 'error');
+      return [];
     }
-  }));
+  });
 
-  return allFiles;
+  const results = await Promise.all(fetchPromises);
+  
+  // Flatten and deduplicate files based on file path
+  const fileMap = new Map();
+  
+  results.forEach((files) => {
+    if (Array.isArray(files)) {
+      files.forEach((file) => {
+        if (!fileMap.has(file.path)) {
+          fileMap.set(file.path, file);
+        }
+      });
+    }
+  });
+
+  return Array.from(fileMap.values());
 }
 
 function parseOrgSite() {
@@ -287,7 +298,9 @@ async function fetchFiles(basePath = '') {
     const modifiedSinceInput = document.getElementById('modified-since')?.value;
     const modifiedSince = modifiedSinceInput ? new Date(modifiedSinceInput) : null;
 
+    // Process all items in current directory
     data.forEach((item) => {
+      // Check if it's an HTML file
       if (item.ext === 'html' && item.lastModified) {
         // Check exclude paths
         const isExcluded = excludePaths.some((excludePath) => {
@@ -309,33 +322,53 @@ async function fetchFiles(basePath = '') {
       }
     });
 
-    // Handle subfolders separately if needed
+    // Handle subfolders recursively if enabled
     if (includeSubfolders) {
-      const subfolderPromises = data
-        .filter((item) => !item.ext && !item.lastModified && item.name !== '.DS_Store')
-        .filter((item) => {
-          // Also exclude subfolders that match exclude paths
-          const isExcluded = excludePaths.some((excludePath) => {
-            if (excludePath.startsWith('/')) {
-              return item.path.includes(excludePath);
-            }
-            return item.path.includes(`/${excludePath}`);
-          });
-          return !isExcluded;
-        })
-        .map(async (item) => {
-          try {
-            return await fetchFiles(item.path.replace(`/${org}/${site}`, ''));
-          } catch (error) {
-            return [];
+      const folders = data.filter((item) => 
+        !item.ext && 
+        !item.lastModified && 
+        item.name !== '.DS_Store' &&
+        item.name !== '.git' &&
+        !item.name.startsWith('.')
+      );
+
+      // Filter out excluded folders
+      const validFolders = folders.filter((folder) => {
+        const isExcluded = excludePaths.some((excludePath) => {
+          if (excludePath.startsWith('/')) {
+            return folder.path.includes(excludePath);
           }
+          return folder.path.includes(`/${excludePath}`);
         });
+        return !isExcluded;
+      });
+
+      // Recursively fetch files from each subfolder
+      const subfolderPromises = validFolders.map(async (folder) => {
+        try {
+          // Convert full path back to relative path for API call
+          const relativePath = folder.path.replace(`/${org}/${site}`, '');
+          return await fetchFiles(relativePath);
+        } catch (error) {
+          console.warn(`Failed to fetch files from ${folder.path}:`, error);
+          return [];
+        }
+      });
+
+      // Wait for all subfolder operations to complete
       const subfolderResults = await Promise.all(subfolderPromises);
-      subfolderResults.forEach((subFiles) => htmlFiles.push(...subFiles));
+      
+      // Flatten and add all subfolder results to main array
+      subfolderResults.forEach((subFiles) => {
+        if (Array.isArray(subFiles)) {
+          htmlFiles.push(...subFiles);
+        }
+      });
     }
 
     return htmlFiles;
   } catch (error) {
+    console.error(`Error fetching files from ${basePath}:`, error);
     if (basePath === '') {
       showMessage(`Error fetching files: ${error.message}`, 'error');
     }
