@@ -1,0 +1,17 @@
+<?xml version="1.0" encoding="utf-8"?>
+<feed xmlns="http://www.w3.org/2005/Atom">
+    <id>https://example.com</id>
+    <title>Blog Feed</title>
+    <updated>2025-11-29T19:40:50.000Z</updated>
+    <generator>EDS feed generator (GitHub action)</generator>
+    <link rel="alternate" href="https://example.com"/>
+    <subtitle>Latest blog posts</subtitle>
+    <entry>
+        <title type="html"><![CDATA[Industry Trends]]></title>
+        <id>undefined/en-us/microsoft-fabric/blog/content-type/industry-trends</id>
+        <link href="undefined/en-us/microsoft-fabric/blog/content-type/industry-trends"/>
+        <updated>2025-11-29T19:40:50.000Z</updated>
+        <content type="html"><![CDATA[Industry Trends]]></content>
+        <published>2025-11-29T19:40:50.000Z</published>
+    </entry>
+</feed>

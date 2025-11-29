@@ -2,10 +2,18 @@
 <feed xmlns="http://www.w3.org/2005/Atom">
     <id>https://www.microsoft.com/en-us/microsoft-fabric/blog</id>
     <title>Microsoft Fabric Blog</title>
-    <updated>2025-11-29T03:24:07.000Z</updated>
+    <updated>2025-11-29T19:40:50.000Z</updated>
     <generator>EDS feed generator (GitHub action)</generator>
     <link rel="alternate" href="https://www.microsoft.com/en-us/microsoft-fabric/blog"/>
     <subtitle>Microsoft Fabric Blog</subtitle>
+    <entry>
+        <title type="html"><![CDATA[Industry Trends]]></title>
+        <id>https://www.microsoft.com/en-us/microsoft-fabric/blog/content-type/industry-trends</id>
+        <link href="https://www.microsoft.com/en-us/microsoft-fabric/blog/content-type/industry-trends"/>
+        <updated>2025-11-29T19:40:50.000Z</updated>
+        <content type="html"><![CDATA[Industry Trends]]></content>
+        <published>2025-11-29T19:40:50.000Z</published>
+    </entry>
     <entry>
         <title type="html"><![CDATA[Home | AEM Boilerplate]]></title>
         <id>https://www.microsoft.com/en-us/microsoft-fabric/blog/test-document3</id>
@@ -70,7 +78,7 @@ Bringing BASIC back: Microsoft’s 6502 BASIC is now Open Source
         <published>2025-11-29T03:24:07.000Z</published>
     </entry>
     <entry>
-        <title type="html"><![CDATA[Untitled Post 6]]></title>
+        <title type="html"><![CDATA[Untitled Post 7]]></title>
         <id>https://www.microsoft.com/en-us/microsoft-fabric/blog/author/author-3</id>
         <link href="https://www.microsoft.com/en-us/microsoft-fabric/blog/author/author-3"/>
         <updated>2025-11-21T03:13:24.000Z</updated>
