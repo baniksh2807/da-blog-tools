@@ -2,22 +2,15 @@
 <feed xmlns="http://www.w3.org/2005/Atom">
     <id>https://www.microsoft.com/en-us/microsoft-fabric/blog/author</id>
     <title>Microsoft Fabric Blog</title>
-    <updated>2025-11-21T03:13:24.000Z</updated>
+    <updated>2025-11-29T19:45:05.000Z</updated>
     <generator>EDS feed generator (GitHub action)</generator>
     <link rel="alternate" href="https://www.microsoft.com/en-us/microsoft-fabric/blog/author"/>
     <subtitle>Microsoft Fabric Blog</subtitle>
     <entry>
-        <title type="html"><![CDATA[Untitled Post 1]]></title>
-        <id>https://www.microsoft.com/en-us/microsoft-fabric/blog/author/author-3</id>
-        <link href="https://www.microsoft.com/en-us/microsoft-fabric/blog/author/author-3"/>
-        <updated>2025-11-21T03:13:24.000Z</updated>
-        <published>2025-11-21T03:13:24.000Z</published>
-    </entry>
-    <entry>
         <title type="html"><![CDATA[Home | AEM Boilerplate]]></title>
-        <id>https://www.microsoft.com/en-us/microsoft-fabric/blog/author/author-2</id>
-        <link href="https://www.microsoft.com/en-us/microsoft-fabric/blog/author/author-2"/>
-        <updated>2025-11-21T03:13:12.000Z</updated>
+        <id>https://www.microsoft.com/en-us/microsoft-fabric/blog/test-document4</id>
+        <link href="https://www.microsoft.com/en-us/microsoft-fabric/blog/test-document4"/>
+        <updated>2025-11-29T19:45:05.000Z</updated>
         <content type="html"><![CDATA[READ TIME
 3 min
 /en-us/microsoft-fabric/blog/author/arun-ulagaratchagan
@@ -25,13 +18,16 @@ After an unforgettable kickoff in Stockholm last year, the Microsoft Fabric Comm
 Bringing BASIC back: Microsoft’s 6502 BASIC is now Open Source
 /en-us/microsoft-fabric/blog/author/alok-pareek/en-us/windows-server/blog/author/kadri-umay
 /en-us/microsoft-fabric/blog/author/arun-ulagaratchagan]]></content>
-        <published>2025-11-21T03:13:12.000Z</published>
+        <author>
+            <name>Arun Ulagaratchagan,stacey haffner, scott hanselman</name>
+        </author>
+        <published>2025-11-29T19:45:05.000Z</published>
     </entry>
     <entry>
         <title type="html"><![CDATA[Home | AEM Boilerplate]]></title>
-        <id>https://www.microsoft.com/en-us/microsoft-fabric/blog/author/author-1</id>
-        <link href="https://www.microsoft.com/en-us/microsoft-fabric/blog/author/author-1"/>
-        <updated>2025-11-21T03:13:00.000Z</updated>
+        <id>https://www.microsoft.com/en-us/microsoft-fabric/blog/test-document3</id>
+        <link href="https://www.microsoft.com/en-us/microsoft-fabric/blog/test-document3"/>
+        <updated>2025-11-29T19:44:33.000Z</updated>
         <content type="html"><![CDATA[READ TIME
 3 min
 /en-us/microsoft-fabric/blog/author/arun-ulagaratchagan
@@ -39,6 +35,53 @@ After an unforgettable kickoff in Stockholm last year, the Microsoft Fabric Comm
 Bringing BASIC back: Microsoft’s 6502 BASIC is now Open Source
 /en-us/microsoft-fabric/blog/author/alok-pareek/en-us/windows-server/blog/author/kadri-umay
 /en-us/microsoft-fabric/blog/author/arun-ulagaratchagan]]></content>
-        <published>2025-11-21T03:13:00.000Z</published>
+        <author>
+            <name>Arun Ulagaratchagan,stacey haffner, scott hanselman</name>
+        </author>
+        <published>2025-11-29T19:44:33.000Z</published>
+    </entry>
+    <entry>
+        <title type="html"><![CDATA[Home | AEM Boilerplate]]></title>
+        <id>https://www.microsoft.com/en-us/microsoft-fabric/blog/test-document2</id>
+        <link href="https://www.microsoft.com/en-us/microsoft-fabric/blog/test-document2"/>
+        <updated>2025-11-29T19:44:03.000Z</updated>
+        <content type="html"><![CDATA[READ TIME
+3 min
+/en-us/microsoft-fabric/blog/author/arun-ulagaratchagan
+After an unforgettable kickoff in Stockholm last year, the Microsoft Fabric Community Conference is returning to Europe—this time in the musical city of Vienna! From September 15–18, we’re bringing the Fabric community together at the Austria Center for a wealth of learning, connection, and inspiration.
+/en-us/microsoft-fabric/blog/author/alok-pareek/en-us/windows-server/blog/author/kadri-umay
+/en-us/microsoft-fabric/blog/author/arun-ulagaratchagan]]></content>
+        <author>
+            <name>stacey haffner, scott hanselman</name>
+        </author>
+        <published>2025-11-29T19:44:03.000Z</published>
+    </entry>
+    <entry>
+        <title type="html"><![CDATA[Home | AEM Boilerplate]]></title>
+        <id>https://www.microsoft.com/en-us/microsoft-fabric/blog/test-document</id>
+        <link href="https://www.microsoft.com/en-us/microsoft-fabric/blog/test-document"/>
+        <updated>2025-11-29T03:24:07.000Z</updated>
+        <content type="html"><![CDATA[/en-us/microsoft-fabric/blog/author/alok-pareek/en-us/windows-server/blog/author/kadri-umay
+/en-us/microsoft-fabric/blog/author/arun-ulagaratchagan]]></content>
+        <author>
+            <name>Arun Ulagaratchagan</name>
+        </author>
+        <published>2025-11-29T03:24:07.000Z</published>
+    </entry>
+    <entry>
+        <title type="html"><![CDATA[Home | AEM Boilerplate]]></title>
+        <id>https://www.microsoft.com/en-us/microsoft-fabric/blog/test-document1</id>
+        <link href="https://www.microsoft.com/en-us/microsoft-fabric/blog/test-document1"/>
+        <updated>2025-11-29T03:24:07.000Z</updated>
+        <content type="html"><![CDATA[READ TIME
+3 min
+/en-us/microsoft-fabric/blog/author/arun-ulagaratchagan
+After an unforgettable kickoff in Stockholm last year, the Microsoft Fabric Community Conference is returning to Europe—this time in the musical city of Vienna! From September 15–18, we’re bringing the Fabric community together at the Austria Center for a wealth of learning, connection, and inspiration.
+/en-us/microsoft-fabric/blog/author/alok-pareek/en-us/windows-server/blog/author/kadri-umay
+/en-us/microsoft-fabric/blog/author/arun-ulagaratchagan]]></content>
+        <author>
+            <name>Arun Ulagaratchagan</name>
+        </author>
+        <published>2025-11-29T03:24:07.000Z</published>
     </entry>
 </feed>
