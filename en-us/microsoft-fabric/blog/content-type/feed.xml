@@ -1,0 +1,49 @@
+<?xml version="1.0" encoding="utf-8"?>
+<feed xmlns="http://www.w3.org/2005/Atom">
+    <id>https://www.microsoft.com/en-us/microsoft-fabric/blog/content-type</id>
+    <title>Microsoft Fabric Blog</title>
+    <updated>2025-11-29T19:42:58.000Z</updated>
+    <generator>EDS feed generator (GitHub action)</generator>
+    <link rel="alternate" href="https://www.microsoft.com/en-us/microsoft-fabric/blog/content-type"/>
+    <subtitle>Microsoft Fabric Blog</subtitle>
+    <entry>
+        <title type="html"><![CDATA[Events]]></title>
+        <id>https://www.microsoft.com/en-us/microsoft-fabric/blog/content-type/events</id>
+        <link href="https://www.microsoft.com/en-us/microsoft-fabric/blog/content-type/events"/>
+        <updated>2025-11-29T19:42:58.000Z</updated>
+        <content type="html"><![CDATA[Events]]></content>
+        <published>2025-11-29T19:42:58.000Z</published>
+    </entry>
+    <entry>
+        <title type="html"><![CDATA[Best-practices]]></title>
+        <id>https://www.microsoft.com/en-us/microsoft-fabric/blog/content-type/best-practices</id>
+        <link href="https://www.microsoft.com/en-us/microsoft-fabric/blog/content-type/best-practices"/>
+        <updated>2025-11-29T19:42:23.000Z</updated>
+        <content type="html"><![CDATA[Best-practices]]></content>
+        <published>2025-11-29T19:42:23.000Z</published>
+    </entry>
+    <entry>
+        <title type="html"><![CDATA[Announcements]]></title>
+        <id>https://www.microsoft.com/en-us/microsoft-fabric/blog/content-type/announcements</id>
+        <link href="https://www.microsoft.com/en-us/microsoft-fabric/blog/content-type/announcements"/>
+        <updated>2025-11-29T19:41:52.000Z</updated>
+        <content type="html"><![CDATA[Announcements]]></content>
+        <published>2025-11-29T19:41:52.000Z</published>
+    </entry>
+    <entry>
+        <title type="html"><![CDATA[News]]></title>
+        <id>https://www.microsoft.com/en-us/microsoft-fabric/blog/content-type/news</id>
+        <link href="https://www.microsoft.com/en-us/microsoft-fabric/blog/content-type/news"/>
+        <updated>2025-11-29T19:41:14.000Z</updated>
+        <content type="html"><![CDATA[News]]></content>
+        <published>2025-11-29T19:41:14.000Z</published>
+    </entry>
+    <entry>
+        <title type="html"><![CDATA[Industry Trends]]></title>
+        <id>https://www.microsoft.com/en-us/microsoft-fabric/blog/content-type/industry-trends</id>
+        <link href="https://www.microsoft.com/en-us/microsoft-fabric/blog/content-type/industry-trends"/>
+        <updated>2025-11-29T19:40:50.000Z</updated>
+        <content type="html"><![CDATA[Industry Trends]]></content>
+        <published>2025-11-29T19:40:50.000Z</published>
+    </entry>
+</feed>
