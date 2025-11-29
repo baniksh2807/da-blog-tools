@@ -39,31 +39,37 @@ function postContainsTaxonomy(post, taxonomyValue, fieldName, feedType) {
   }
 
   const normalizedSearchValue = normalizeTaxonomyValue(taxonomyValue);
-  const postFieldValue = String(post[fieldName]).toLowerCase();
+  const postFieldValue = String(post[fieldName]);
 
-  // For content-type and similar, check for prefixed pattern: "content-type:industry-trends"
-  if (feedType === 'content-type' || feedType === 'tag' || feedType === 'category') {
-    const prefixedPattern = `${feedType}:${normalizedSearchValue}`;
-    if (postFieldValue.includes(prefixedPattern)) {
-      return true;
+  // Split the field value by commas to get individual taxonomy items
+  const taxonomyItems = postFieldValue
+    .split(',')
+    .map(item => item.trim())
+    .filter(item => item.length > 0);
+
+  // Check each taxonomy item
+  for (const item of taxonomyItems) {
+    const normalizedItem = normalizeTaxonomyValue(item);
+
+    // For content-type, tag, category: check for prefixed pattern
+    if (feedType === 'content-type' || feedType === 'tag' || feedType === 'category') {
+      // Extract the value part after the prefix (e.g., "news" from "content-type:news")
+      const prefixedPattern = `${feedType}:`;
+      if (normalizedItem.startsWith(prefixedPattern)) {
+        const itemValue = normalizedItem.substring(prefixedPattern.length);
+        if (itemValue === normalizedSearchValue) {
+          return true;
+        }
+      }
+    } else {
+      // For author and other types: direct match (case-insensitive)
+      if (normalizedItem === normalizedSearchValue) {
+        return true;
+      }
     }
   }
 
-  // Direct match (useful for author, etc.)
-  if (postFieldValue === normalizedSearchValue) {
-    return true;
-  }
-
-  // Check if value is contained (for comma-separated values)
-  const postValues = postFieldValue
-    .split(',')
-    .map(v => normalizeTaxonomyValue(v));
-
-  return postValues.some(val => 
-    val === normalizedSearchValue || 
-    val.includes(normalizedSearchValue) || 
-    normalizedSearchValue.includes(val)
-  );
+  return false;
 }
 
 async function main() {
