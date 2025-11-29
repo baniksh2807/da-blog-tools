@@ -30,9 +30,10 @@ function taxonomyToSlug(value) {
  * @param {Object} post - Post object
  * @param {string} taxonomyValue - Taxonomy value to search for (without prefix)
  * @param {string} fieldName - Field name to check in post
+ * @param {string} feedType - Type of feed (to construct search pattern if needed)
  * @returns {boolean} True if post contains the taxonomy value
  */
-function postContainsTaxonomy(post, taxonomyValue, fieldName) {
+function postContainsTaxonomy(post, taxonomyValue, fieldName, feedType) {
   if (!post[fieldName]) {
     return false;
   }
@@ -40,7 +41,15 @@ function postContainsTaxonomy(post, taxonomyValue, fieldName) {
   const normalizedSearchValue = normalizeTaxonomyValue(taxonomyValue);
   const postFieldValue = String(post[fieldName]).toLowerCase();
 
-  // Direct match
+  // For content-type and similar, check for prefixed pattern: "content-type:industry-trends"
+  if (feedType === 'content-type' || feedType === 'tag' || feedType === 'category') {
+    const prefixedPattern = `${feedType}:${normalizedSearchValue}`;
+    if (postFieldValue.includes(prefixedPattern)) {
+      return true;
+    }
+  }
+
+  // Direct match (useful for author, etc.)
   if (postFieldValue === normalizedSearchValue) {
     return true;
   }
@@ -114,6 +123,7 @@ async function main() {
 
 /**
  * Generate feeds for a single configuration
+ * Generates feeds for ALL articles (no path filtering), only taxonomies are filtered
  * @param {Object} config - Feed configuration object
  */
 async function generateFeedsForConfig(config) {
@@ -129,6 +139,7 @@ async function generateFeedsForConfig(config) {
 
   console.log(`   Endpoint: ${ENDPOINT}`);
   console.log(`   Target Path: ${TARGET_PATH}`);
+  console.log(`   Feed Type: ${FEED_TYPE}`);
 
   // Fetch blog posts
   const allPosts = await fetchBlogPosts(ENDPOINT, LIMIT);
@@ -139,7 +150,7 @@ async function generateFeedsForConfig(config) {
     return;
   }
 
-  // Filter for articles only
+  // Filter for articles only (NO PATH FILTERING - include all articles)
   const articles = allPosts.filter(post => 
     post.type && post.type.toLowerCase() === 'article'
   );
@@ -150,21 +161,12 @@ async function generateFeedsForConfig(config) {
     return;
   }
 
-  // Filter by target directory path
-  const pathFilteredPosts = filterPostsByPath(articles, TARGET_DIRECTORY);
-  console.log(`   Articles in target path: ${pathFilteredPosts.length}`);
-
-  if (pathFilteredPosts.length === 0) {
-    console.warn(`   ⚠ No articles in "${TARGET_DIRECTORY}"`);
-    return;
-  }
-
   // Fetch feed metadata
   const feedMetadata = await fetchBlogMetadata(FEED_INFO_ENDPOINT);
   console.log(`   Feed: ${feedMetadata.title}`);
 
   // Validate post dates
-  const validPosts = validatePostDates(pathFilteredPosts);
+  const validPosts = validatePostDates(articles);
   console.log(`   Valid posts: ${validPosts.length}`);
 
   if (validPosts.length === 0) {
@@ -175,7 +177,7 @@ async function generateFeedsForConfig(config) {
   // Sort posts by date (newest first)
   validPosts.sort((a, b) => b.validDate - a.validDate);
 
-  // Step 1: Generate main feed
+  // Step 1: Generate main feed (all articles)
   console.log(`\n   [1/2] Generating main feed...`);
   await generateMainFeed(validPosts, feedMetadata, TARGET_PATH);
 
@@ -204,16 +206,17 @@ async function generateFeedsForConfig(config) {
       POST_FIELD_NAME
     );
   } else {
-    console.log(`   [2/2] Main feed only`);
+    console.log(`   [2/2] Main feed only (no taxonomy-specific feeds)`);
   }
 }
 
 /**
  * Generate taxonomy-specific feeds
+ * Filters all articles based on taxonomy/author values
  * @param {Array<Object>} validPosts - Array of valid posts
  * @param {Object} feedMetadata - Feed metadata
  * @param {string} targetPath - Target directory path
- * @param {string} feedType - Type of feed
+ * @param {string} feedType - Type of feed (author, content-type, tag, etc.)
  * @param {Array<string>} taxonomyValues - Taxonomy values from metadata
  * @param {string} postFieldName - Field name in post object
  */
@@ -231,9 +234,9 @@ async function generateTaxonomySpecificFeeds(
   for (let valueIndex = 0; valueIndex < taxonomyValues.length; valueIndex++) {
     const taxonomyValue = taxonomyValues[valueIndex];
     
-    // Filter posts that contain this taxonomy value
+    // Filter posts that contain this taxonomy value (from ALL articles, not just path)
     const relatedPosts = validPosts.filter(post => 
-      postContainsTaxonomy(post, taxonomyValue, postFieldName)
+      postContainsTaxonomy(post, taxonomyValue, postFieldName, feedType)
     );
 
     if (relatedPosts.length === 0) {
@@ -386,26 +389,6 @@ async function generateMainFeed(posts, feedMetadata, targetPath) {
     console.error(`Error writing main feed:`, error.message);
     throw error;
   }
-}
-
-/**
- * Filter posts by target directory path
- * @param {Array<Object>} posts - Array of post objects
- * @param {string} targetDirectory - Target directory path
- * @returns {Array<Object>} Filtered posts
- */
-function filterPostsByPath(posts, targetDirectory) {
-  if (!posts || !Array.isArray(posts)) {
-    return [];
-  }
-
-  const normalizedTargetDir = targetDirectory.toLowerCase().replace(/^\/+|\/+$/g, '');
-  
-  return posts.filter(post => {
-    if (!post.path) return false;
-    const normalizedPostPath = post.path.toLowerCase().replace(/^\/+/, '');
-    return normalizedPostPath.startsWith(normalizedTargetDir);
-  });
 }
 
 /**
