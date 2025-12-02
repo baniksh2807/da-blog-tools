@@ -303,11 +303,7 @@ async function generateTaxonomyFeed(
     language: feedMetadata.language || feedMetadata.lang || 'en-us',
   });
 
-  // Add contributor info
-  feed.addContributor({
-    name: taxonomyValue,
-    email: `${valueSlug}@example.com`,
-  });
+  
 
   // Add posts to feed
   taxonomyPosts.forEach((post, index) => {
