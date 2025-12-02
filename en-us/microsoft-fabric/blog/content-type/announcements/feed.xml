@@ -6,10 +6,6 @@
     <generator>EDS feed generator (GitHub action)</generator>
     <link rel="alternate" href="https://www.microsoft.com/en-us/microsoft-fabric/blog/content-type/announcements"/>
     <subtitle>Microsoft Fabric Blog - announcements</subtitle>
-    <contributor>
-        <name>announcements</name>
-        <email>announcements@example.com</email>
-    </contributor>
     <entry>
         <title type="html"><![CDATA[Home | AEM Boilerplate]]></title>
         <id>https://www.microsoft.com/en-us/microsoft-fabric/blog/test-document3</id>
