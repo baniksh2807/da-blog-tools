@@ -60,6 +60,58 @@ function generateFeedLink(feedMetadata, postPath, feedType) {
 }
 
 /**
+ * Generate root feed URL (for feed link and id)
+ * Applies URL rewriting if urlrewrite flag is enabled
+ * @param {Object} feedMetadata - Feed metadata
+ * @param {string} valueSlug - Optional slug for taxonomy-specific feeds
+ * @returns {string} Root feed URL
+ */
+function generateRootFeedUrl(feedMetadata, valueSlug = null) {
+  const siteDomain = feedMetadata['site-domain'] || 'https://www.microsoft.com';
+  const urlrewrite = feedMetadata.urlrewrite === true || feedMetadata.urlrewrite === 'true';
+  
+  if (!urlrewrite) {
+    // Standard URL: use feedMetadata.link as-is
+    if (valueSlug) {
+      return `${feedMetadata.link}/${valueSlug}`;
+    }
+    return feedMetadata.link;
+  }
+
+  // URL rewrite enabled: shorten the link
+  // E.g., "https://www.microsoft.com/en-us/microsoft-fabric/blog" 
+  //    → "https://www.microsoft.com/blog"
+  const originalLink = feedMetadata.link;
+  
+  try {
+    const urlObj = new URL(originalLink);
+    const pathParts = urlObj.pathname.split('/').filter(Boolean);
+    
+    // Find the 'blog' index
+    const blogIndex = pathParts.findIndex(part => part === 'blog');
+    
+    if (blogIndex !== -1) {
+      // Get everything from 'blog' onwards
+      const shortenedPath = '/' + pathParts.slice(blogIndex).join('/');
+      const shortenedUrl = siteDomain + shortenedPath;
+      
+      if (valueSlug) {
+        return `${shortenedUrl}/${valueSlug}`;
+      }
+      return shortenedUrl;
+    }
+  } catch (error) {
+    console.warn('Error parsing feed metadata link:', error.message);
+  }
+
+  // Fallback to original link if 'blog' not found
+  if (valueSlug) {
+    return `${originalLink}/${valueSlug}`;
+  }
+  return originalLink;
+}
+
+/**
  * Check if post contains a specific taxonomy value
  * Handles both simple values and prefixed values (e.g., "content-type:industry-trends")
  * @param {Object} post - Post object
@@ -332,12 +384,16 @@ async function generateTaxonomyFeed(
   const feedTitle = `${feedMetadata.title} - ${taxonomyValue}`;
   const feedDescription = `${feedMetadata.description || 'Articles'} - ${taxonomyValue}`;
 
+  // Generate root feed URL with URL rewrite support
+  const rootFeedUrl = generateRootFeedUrl(feedMetadata, valueSlug);
+
   const feed = new Feed({
     title: feedTitle,
     description: feedDescription,
-    id: `${feedMetadata.link}/${valueSlug}`,
-    link: `${feedMetadata.link}/${valueSlug}`,
+    id: rootFeedUrl,
+    link: rootFeedUrl,
     updated: newestDate,
+    generator: 'EDS feed generator (GitHub action)',
     language: feedMetadata.language || feedMetadata.lang || 'en-us',
   });
 
@@ -387,11 +443,14 @@ async function generateMainFeed(posts, feedMetadata, targetPath, feedType) {
   const TARGET_FILE = path.join(targetPath, 'feed.xml');
   const newestPost = posts[0].validDate;
 
+  // Generate root feed URL with URL rewrite support
+  const rootFeedUrl = generateRootFeedUrl(feedMetadata);
+
   const feed = new Feed({
     title: feedMetadata.title,
     description: feedMetadata.description,
-    id: feedMetadata.link,
-    link: feedMetadata.link,
+    id: rootFeedUrl,
+    link: rootFeedUrl,
     updated: newestPost,
     generator: 'EDS feed generator (GitHub action)',
     language: feedMetadata.language || feedMetadata.lang || 'en-us',
