@@ -25,6 +25,41 @@ function taxonomyToSlug(value) {
 }
 
 /**
+ * Generate feed link based on post path and feed metadata
+ * Applies URL rewriting if urlrewrite flag is enabled
+ * @param {Object} feedMetadata - Feed metadata containing site-domain and optional urlrewrite flag
+ * @param {string} postPath - Post path (e.g., "/en-us/microsoft-fabric/blog/test-document")
+ * @param {string} feedType - Type of feed (for URL pattern matching)
+ * @returns {string} Complete feed link URL
+ */
+function generateFeedLink(feedMetadata, postPath, feedType) {
+  const siteDomain = feedMetadata['site-domain'] || 'https://www.microsoft.com';
+  const urlrewrite = feedMetadata.urlrewrite === true || feedMetadata.urlrewrite === 'true';
+
+  if (!urlrewrite) {
+    // Standard URL: domain + full path
+    return siteDomain + postPath;
+  }
+
+  // URL rewrite enabled: shorten path
+  // Extract just the post slug from the path
+  // E.g., "/en-us/microsoft-fabric/blog/test-document" → "/blog/test-document"
+  const pathParts = postPath.split('/').filter(Boolean);
+  
+  // Find the 'blog' index
+  const blogIndex = pathParts.findIndex(part => part === 'blog');
+  
+  if (blogIndex !== -1) {
+    // Get everything from 'blog' onwards
+    const shortenedPath = '/' + pathParts.slice(blogIndex).join('/');
+    return siteDomain + shortenedPath;
+  }
+
+  // Fallback to full path if 'blog' not found
+  return siteDomain + postPath;
+}
+
+/**
  * Check if post contains a specific taxonomy value
  * Handles both simple values and prefixed values (e.g., "content-type:industry-trends")
  * @param {Object} post - Post object
@@ -170,6 +205,10 @@ async function generateFeedsForConfig(config) {
   // Fetch feed metadata
   const feedMetadata = await fetchBlogMetadata(FEED_INFO_ENDPOINT);
   console.log(`   Feed: ${feedMetadata.title}`);
+  
+  // Log URL rewrite status
+  const urlrewrite = feedMetadata.urlrewrite === true || feedMetadata.urlrewrite === 'true';
+  console.log(`   URL Rewrite: ${urlrewrite ? 'enabled' : 'disabled'}`);
 
   // Validate post dates
   const validPosts = validatePostDates(articles);
@@ -185,7 +224,7 @@ async function generateFeedsForConfig(config) {
 
   // Step 1: Generate main feed (all articles)
   console.log(`\n   [1/2] Generating main feed...`);
-  await generateMainFeed(validPosts, feedMetadata, TARGET_PATH);
+  await generateMainFeed(validPosts, feedMetadata, TARGET_PATH, FEED_TYPE);
 
   // Step 2: Generate specialized feeds if not main type
   if (FEED_TYPE !== 'main') {
@@ -299,15 +338,12 @@ async function generateTaxonomyFeed(
     id: `${feedMetadata.link}/${valueSlug}`,
     link: `${feedMetadata.link}/${valueSlug}`,
     updated: newestDate,
-    generator: 'EDS feed generator (GitHub action)',
     language: feedMetadata.language || feedMetadata.lang || 'en-us',
   });
 
-  
-
   // Add posts to feed
   taxonomyPosts.forEach((post, index) => {
-    const link = feedMetadata['site-domain'] + post.path;
+    const link = generateFeedLink(feedMetadata, post.path, feedType);
 
     try {
       feed.addItem({
@@ -345,8 +381,9 @@ async function generateTaxonomyFeed(
  * @param {Array<Object>} posts - Array of valid post objects
  * @param {Object} feedMetadata - Feed metadata
  * @param {string} targetPath - Target directory path
+ * @param {string} feedType - Type of feed
  */
-async function generateMainFeed(posts, feedMetadata, targetPath) {
+async function generateMainFeed(posts, feedMetadata, targetPath, feedType) {
   const TARGET_FILE = path.join(targetPath, 'feed.xml');
   const newestPost = posts[0].validDate;
 
@@ -361,7 +398,7 @@ async function generateMainFeed(posts, feedMetadata, targetPath) {
   });
 
   posts.forEach((post, index) => {
-    const link = feedMetadata['site-domain'] + post.path;
+    const link = generateFeedLink(feedMetadata, post.path, feedType);
 
     try {
       feed.addItem({
@@ -476,6 +513,7 @@ async function fetchBlogMetadata(infoEndpoint) {
       'site-domain': 'https://main--da-blog-tools--baniksh2807.aem.live',
       language: 'en-us',
       metadata: '',
+      urlrewrite: false,
     };
   }
 }
