@@ -1,10 +1,10 @@
 <?xml version="1.0" encoding="utf-8"?>
 <feed xmlns="http://www.w3.org/2005/Atom">
-    <id>https://www.microsoft.com/en-us/microsoft-fabric/blog/content-type</id>
+    <id>https://www.microsoft.com/blog/content-type</id>
     <title>Microsoft Fabric Blog</title>
     <updated>2025-11-29T19:45:05.000Z</updated>
     <generator>EDS feed generator (GitHub action)</generator>
-    <link rel="alternate" href="https://www.microsoft.com/en-us/microsoft-fabric/blog/content-type"/>
+    <link rel="alternate" href="https://www.microsoft.com/blog/content-type"/>
     <subtitle>Microsoft Fabric Blog</subtitle>
     <entry>
         <title type="html"><![CDATA[Home | AEM Boilerplate]]></title>

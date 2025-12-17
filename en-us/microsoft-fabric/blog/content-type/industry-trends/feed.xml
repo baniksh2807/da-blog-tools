@@ -1,10 +1,10 @@
 <?xml version="1.0" encoding="utf-8"?>
 <feed xmlns="http://www.w3.org/2005/Atom">
-    <id>https://www.microsoft.com/en-us/microsoft-fabric/blog/content-type/industry-trends</id>
+    <id>https://www.microsoft.com/blog/content-type/industry-trends</id>
     <title>Microsoft Fabric Blog - industry-trends</title>
     <updated>2025-11-29T19:44:03.000Z</updated>
-    <generator>https://github.com/jpmonette/feed</generator>
-    <link rel="alternate" href="https://www.microsoft.com/en-us/microsoft-fabric/blog/content-type/industry-trends"/>
+    <generator>EDS feed generator (GitHub action)</generator>
+    <link rel="alternate" href="https://www.microsoft.com/blog/content-type/industry-trends"/>
     <subtitle>Microsoft Fabric Blog - industry-trends</subtitle>
     <entry>
         <title type="html"><![CDATA[Home | AEM Boilerplate]]></title>

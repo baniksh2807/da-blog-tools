@@ -3,7 +3,7 @@
     <id>https://www.microsoft.com/en-us/microsoft-fabric/blog/author/scott-hanselman</id>
     <title>Microsoft Fabric Blog - scott hanselman</title>
     <updated>2025-11-29T19:45:05.000Z</updated>
-    <generator>https://github.com/jpmonette/feed</generator>
+    <generator>EDS feed generator (GitHub action)</generator>
     <link rel="alternate" href="https://www.microsoft.com/en-us/microsoft-fabric/blog/author/scott-hanselman"/>
     <subtitle>Microsoft Fabric Blog - scott hanselman</subtitle>
     <entry>

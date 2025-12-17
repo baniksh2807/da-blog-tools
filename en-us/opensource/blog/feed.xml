@@ -1,0 +1,23 @@
+<?xml version="1.0" encoding="utf-8"?>
+<feed xmlns="http://www.w3.org/2005/Atom">
+    <id>https://example.com</id>
+    <title>Blog Feed</title>
+    <updated>2025-11-29T20:59:09.000Z</updated>
+    <generator>EDS feed generator (GitHub action)</generator>
+    <link rel="alternate" href="https://example.com"/>
+    <subtitle>Latest blog posts</subtitle>
+    <entry>
+        <title type="html"><![CDATA[Test document]]></title>
+        <id>https://main--da-blog-tools--baniksh2807.aem.live/en-us/opensource/blog/test-post</id>
+        <link href="https://main--da-blog-tools--baniksh2807.aem.live/en-us/opensource/blog/test-post"/>
+        <updated>2025-11-29T20:59:09.000Z</updated>
+        <published>2025-11-29T20:59:09.000Z</published>
+    </entry>
+    <entry>
+        <title type="html"><![CDATA[TEst document]]></title>
+        <id>https://main--da-blog-tools--baniksh2807.aem.live/en-us/opensource/blog/test-doc-22-10</id>
+        <link href="https://main--da-blog-tools--baniksh2807.aem.live/en-us/opensource/blog/test-doc-22-10"/>
+        <updated>2025-11-29T20:59:09.000Z</updated>
+        <published>2025-11-29T20:59:09.000Z</published>
+    </entry>
+</feed>
